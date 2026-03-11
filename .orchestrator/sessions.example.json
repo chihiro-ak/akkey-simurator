@@ -1,0 +1,120 @@
+{
+  "project_id": "sample-webapp",
+  "project_name": "Web App AI Orchestrator Template",
+  "updated_at": "2026-03-11T00:00:00+09:00",
+  "features": [
+    {
+      "feature_id": "FEAT-001",
+      "title": "User signup flow",
+      "status": "in_progress",
+      "priority": "high",
+      "goal": "Allow a new user to create an account with email and password.",
+      "user_value": "A first-time visitor can start using the service without manual admin support.",
+      "done_criteria": [
+        "Signup page is reachable from the public entry point.",
+        "Valid email and password can create an account successfully.",
+        "Validation errors are shown near the relevant fields.",
+        "The UI works on mobile and desktop without clipping or overflow."
+      ],
+      "states": [
+        "default",
+        "loading",
+        "error",
+        "success",
+        "disabled"
+      ],
+      "artifacts": {
+        "spec_files": [
+          "docs/features/FEAT-001-user-signup.md"
+        ],
+        "target_files": [
+          "src/app/signup/page.tsx",
+          "src/components/signup-form.tsx",
+          "src/api/auth/signup.ts"
+        ]
+      },
+      "risks": [
+        "Validation rules may drift between client and server.",
+        "Existing auth flow may share utilities and accidentally regress."
+      ],
+      "sessions": [
+        {
+          "session_id": "S-FEAT-001",
+          "type": "feature",
+          "parent_session_id": null,
+          "owner_agent": "orchestrator",
+          "status": "active",
+          "summary": "Parent session for the signup feature.",
+          "target_files": [],
+          "created_at": "2026-03-11T00:00:00+09:00",
+          "updated_at": "2026-03-11T00:00:00+09:00"
+        },
+        {
+          "session_id": "S-FEAT-001-PLAN",
+          "type": "subtask",
+          "parent_session_id": "S-FEAT-001",
+          "owner_agent": "planner",
+          "status": "done",
+          "summary": "Clarify states, done criteria, and target files.",
+          "target_files": [
+            "docs/features/FEAT-001-user-signup.md"
+          ],
+          "created_at": "2026-03-11T00:05:00+09:00",
+          "updated_at": "2026-03-11T00:20:00+09:00"
+        },
+        {
+          "session_id": "S-FEAT-001-UI",
+          "type": "subtask",
+          "parent_session_id": "S-FEAT-001",
+          "owner_agent": "frontend",
+          "status": "active",
+          "summary": "Implement signup screen and client validation.",
+          "target_files": [
+            "src/app/signup/page.tsx",
+            "src/components/signup-form.tsx"
+          ],
+          "created_at": "2026-03-11T00:25:00+09:00",
+          "updated_at": "2026-03-11T00:25:00+09:00"
+        },
+        {
+          "session_id": "S-FEAT-001-API",
+          "type": "subtask",
+          "parent_session_id": "S-FEAT-001",
+          "owner_agent": "backend",
+          "status": "queued",
+          "summary": "Implement signup API and server-side validation.",
+          "target_files": [
+            "src/api/auth/signup.ts"
+          ],
+          "created_at": "2026-03-11T00:25:00+09:00",
+          "updated_at": "2026-03-11T00:25:00+09:00"
+        },
+        {
+          "session_id": "S-FEAT-001-REVIEW",
+          "type": "subtask",
+          "parent_session_id": "S-FEAT-001",
+          "owner_agent": "qa",
+          "status": "queued",
+          "summary": "Review feature against done criteria and responsive rubric.",
+          "target_files": [],
+          "created_at": "2026-03-11T00:25:00+09:00",
+          "updated_at": "2026-03-11T00:25:00+09:00"
+        }
+      ],
+      "history": [
+        {
+          "at": "2026-03-11T00:00:00+09:00",
+          "by": "orchestrator",
+          "action": "feature_created",
+          "note": "New signup feature created from user request."
+        },
+        {
+          "at": "2026-03-11T00:25:00+09:00",
+          "by": "orchestrator",
+          "action": "subtasks_created",
+          "note": "UI, API, and REVIEW subtasks were created."
+        }
+      ]
+    }
+  ]
+}
