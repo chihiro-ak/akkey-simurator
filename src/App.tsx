@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import ballChainImage from "./assets/parts/ball-chain.png";
 import nasukanImage from "./assets/parts/nasukan.png";
@@ -28,12 +28,14 @@ const parts: PartOption[] = [
 
 const acceptedTypes = ["image/png", "image/jpeg", "image/webp"];
 const acceptedExtensions = [".png", ".jpg", ".jpeg", ".webp"];
-
 const initialImageAvailability: Record<PartId, boolean> = {
   nasukan: true,
   "ball-chain": true,
   strap: true,
 };
+const holePositionMin = 18;
+const holePositionMax = 82;
+const defaultHolePosition = 50;
 
 const isSupportedImageFile = (file: File) => {
   const lowerName = file.name.toLowerCase();
@@ -50,6 +52,10 @@ function App() {
   const [uploadedArtwork, setUploadedArtwork] = useState<UploadedArtwork | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [imageAvailability, setImageAvailability] = useState(initialImageAvailability);
+  const [holePosition, setHolePosition] = useState(defaultHolePosition);
+  const [isDraggingHole, setIsDraggingHole] = useState(false);
+
+  const cardRef = useRef<HTMLDivElement | null>(null);
 
   const activePart = useMemo(
     () => parts.find((part) => part.id === selectedPart) ?? parts[0],
@@ -67,9 +73,34 @@ function App() {
 
   useEffect(() => {
     if (isPreviewReady) return;
-
     setPreviewMode("edit");
   }, [isPreviewReady]);
+
+  useEffect(() => {
+    if (!isDraggingHole) return;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const card = cardRef.current;
+      if (!card) return;
+
+      const rect = card.getBoundingClientRect();
+      const ratio = ((event.clientX - rect.left) / rect.width) * 100;
+      const nextValue = Math.min(holePositionMax, Math.max(holePositionMin, ratio));
+      setHolePosition(nextValue);
+    };
+
+    const handlePointerUp = () => {
+      setIsDraggingHole(false);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+    };
+  }, [isDraggingHole]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -126,6 +157,15 @@ function App() {
     );
   };
 
+  const handleHolePointerDown = (event: React.PointerEvent<HTMLButtonElement | HTMLDivElement>) => {
+    event.preventDefault();
+    setIsDraggingHole(true);
+  };
+
+  const handleHoleReset = () => {
+    setHolePosition(defaultHolePosition);
+  };
+
   return (
     <main className="app-shell">
       <section className="phone-frame">
@@ -156,7 +196,7 @@ function App() {
                 <span>{uploadCtaDescription}</span>
               </label>
 
-              {/* <div className={`upload-status-card is-${uploadStatus}`} aria-live="polite">
+              <div className={`upload-status-card is-${uploadStatus}`} aria-live="polite">
                 {uploadStatus === "empty" ? (
                   <>
                     <strong>画像を選択してください</strong>
@@ -165,7 +205,6 @@ function App() {
                 {uploadStatus === "loading" ? (
                   <>
                     <strong>プレビューを作成中です</strong>
-                    <span>選択した画像を読み込んでいます。少しお待ちください。</span>
                   </>
                 ) : null}
                 {uploadStatus === "ready" && uploadedArtwork ? (
@@ -180,7 +219,7 @@ function App() {
                     <span>{uploadError}</span>
                   </>
                 ) : null}
-              </div> */}
+              </div>
             </section>
 
             <section className="panel">
@@ -251,57 +290,82 @@ function App() {
             </div>
 
             <div className={`preview-stage ${previewMode === "preview" ? "is-clean" : ""}`}>
-              <div className="preview-hardware" aria-hidden="true">
-                {isPartImageAvailable ? (
-                  <span className="preview-image-crop">
-                    <img
-                      alt=""
-                      className="preview-image"
-                      onError={() => handlePartImageError(activePart.id)}
-                      src={activePart.image}
-                    />
-                  </span>
-                ) : (
-                  <span className="preview-fallback">{activePart.fallbackIcon}</span>
-                )}
-              </div>
-
-              <div className="acrylic-card">
-                {uploadedArtwork ? (
-                  <img
-                    alt="アクキーの完成イメージ"
-                    className="artwork"
-                    src={uploadedArtwork.previewUrl}
-                  />
-                ) : (
-                  <div className={`artwork-placeholder is-${uploadStatus}`}>
-                    <div className="artwork-placeholder-badge" aria-hidden="true">
-                      {uploadStatus === "error" ? "!" : "＋"}
-                    </div>
-                    <strong>
-                      {uploadStatus === "error"
-                        ? "画像を表示できません"
-                        : "画像をアップロードしてください"}
-                    </strong>
-                    <span>
-                      {uploadStatus === "loading"
-                        ? "読み込み中です..."
-                        : uploadStatus === "error"
-                          ? uploadError
-                          : ""}
+              <div className={`preview-object ${previewMode === "preview" && isPreviewReady ? "is-animated" : ""}`}>
+                <div
+                  className="preview-hardware"
+                  aria-hidden="true"
+                  style={{ left: `${holePosition}%` }}
+                >
+                  {isPartImageAvailable ? (
+                    <span className="preview-image-crop">
+                      <img
+                        alt=""
+                        className="preview-image"
+                        onError={() => handlePartImageError(activePart.id)}
+                        src={activePart.image}
+                      />
                     </span>
-                  </div>
-                )}
-                {previewMode === "edit" && uploadedArtwork ? (
-                  <div className="edit-overlay">
-                    <span>ドラッグして配置</span>
-                    <small>{activePart.label}パーツで確認中</small>
-                  </div>
-                ) : null}
+                  ) : (
+                    <span className="preview-fallback">{activePart.fallbackIcon}</span>
+                  )}
+                </div>
+
+                <div className="acrylic-card" ref={cardRef}>
+                  <span className="hole-cutout" style={{ left: `${holePosition}%` }} />
+
+                  {previewMode === "edit" ? (
+                    <div className="hole-editor" onPointerDown={handleHolePointerDown}>
+                      <div className="hole-track" />
+                      <button
+                        aria-label="穴位置を調整"
+                        className="hole-handle"
+                        onDoubleClick={handleHoleReset}
+                        onPointerDown={handleHolePointerDown}
+                        style={{ left: `${holePosition}%` }}
+                        type="button"
+                      />
+                    </div>
+                  ) : null}
+
+                  {uploadedArtwork ? (
+                    <img
+                      alt="アクキーの完成イメージ"
+                      className="artwork"
+                      src={uploadedArtwork.previewUrl}
+                    />
+                  ) : (
+                    <div className={`artwork-placeholder is-${uploadStatus}`}>
+                      <div className="artwork-placeholder-badge" aria-hidden="true">
+                        {uploadStatus === "error" ? "!" : "＋"}
+                      </div>
+                      <strong>
+                        {uploadStatus === "error"
+                          ? "画像を表示できません"
+                          : "画像をアップロードしてください"}
+                      </strong>
+                      <span>
+                        {uploadStatus === "loading"
+                          ? "読み込み中です..."
+                          : uploadStatus === "error"
+                            ? uploadError
+                            : ""}
+                      </span>
+                    </div>
+                  )}
+
+                  {previewMode === "edit" && uploadedArtwork ? (
+                    <div className="edit-overlay">
+                      <span>ドラッグして穴位置を調整</span>
+                      <small>{activePart.label}パーツで確認中</small>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               <p className="preview-caption" aria-live="polite">
-                {uploadedArtwork ? `${activePart.label}パーツでプレビュー中` : ""}
+                {uploadedArtwork
+                  ? `${activePart.label}パーツでプレビュー中`
+                  : "画像を読み込むとプレビューできます"}
               </p>
             </div>
           </section>
