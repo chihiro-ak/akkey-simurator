@@ -51,6 +51,7 @@
 - spacing と text size を揃える
 - 固定幅前提で UI を決め打ちしない
 - ウィンドウ幅に応じてレイアウトが自動調整されるようにする
+- 合意済みの runnable UI がある場合は、それをベースラインとして扱い、ユーザー合意なしに大きく変更しない
 
 ## Stitch ベースの UI ルール
 - Stitch MCP のダウンロード結果は `docs/ui/stitch/<screen-set-name>/` に保存する
@@ -58,6 +59,7 @@
 - backlog 詳細化前に、Stitch ベースの runnable UI を 1 度作って確認する
 - Stitch から作った UI は mobile と desktop の両方を確認する
 - 幅を変えた時の主要ブロックの並び順まで確認する
+- close 済み feature の後続実装では、runnable UI の主要ブロック構成と主要導線を維持する
 
 ## 実画面確認
 - 実画面確認なしに「修正済み」と断定しない

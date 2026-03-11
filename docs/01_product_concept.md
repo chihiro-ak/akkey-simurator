@@ -79,7 +79,7 @@ MVP では「専門的な 3D ツールを使わずに、入稿前の不安を短
 ## 前提と制約
 - 技術スタックは Next.js / React / TypeScript / Tailwind CSS / shadcn/ui
 - 個人開発前提のため、初期は実装と検証コストを抑える
-- UI を含む feature は実装前に mock 承認が必要
+- UI を含む feature は `src/App.tsx` の runnable UI を正として実装前提を合わせる
 
 ## 現時点の不足情報
 - 対応する画像形式、容量制限、透過前提の有無
