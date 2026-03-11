@@ -1,76 +1,86 @@
-# 03_dev_rules.md
+# 00_dev_rules.md
 
 ## 目的
-このドキュメントは、実装時のフォーマット、静的解析、型、安全性、命名、テストの共通ルールを定義する。
+このドキュメントは、実装時の共通ルールを定義するものです。  
+最小構成、検証容易性、可読性、保守性を優先し、feature scope を守って進めます。
 
 ## 必須チェック
-実装完了前に少なくとも以下を通すこと。
+実装完了前に最低限以下を確認すること。
 - formatter
 - linter
 - typecheck
 - build
+- 必要な実行確認
+  - React / Vite / Next.js など UI 実装を含む場合は `npm run dev` 等で実画面を確認する
 - 必要なテスト
 
 ## Encoding
 - UTF-8
 
 ## Formatter
-- Prettier を唯一のコードフォーマッタとする
-- 手動で整形ルールを増やしすぎず、Prettier に従う
-- フォーマット差分だけの変更は、機能変更と分けられるなら分ける
+- Prettier を第一候補とする
+- 手で整形し続けず、整形ツールがあるならそれに従う
 
 ## Linter
-- ESLint の警告とエラーを確認する
+- ESLint のエラーを解消する
 - 未使用 import / 未使用変数を残さない
-- `console.log` は検証後に不要なら削除する
-- hook ルール違反を許容しない
-- feature scope 外の一時回避コードを残さない
+- `console.log` は検証後に不要なら消す
+- hook のルール違反を残さない
+- feature scope を越えたコードを混ぜない
 
 ## TypeScript
 - `any` は原則禁止
-- やむを得ず使う場合は理由をコメントで残す
-- `unknown` を優先する
-- 型を雑に広げてエラーを消さない
+- 迷ったら `unknown` を使い、呼び出し側で絞り込む
 - props / state / API response の型を明示する
-- 型エラーを無視して完了扱いにしない
+- 型エラーを放置して UI だけ先に進めない
 
-## Import rules
-- import 順は自動整列ルールに従う
-- 未使用 import を残さない
-- 相対 import が深くなりすぎる場合は整理を検討する
-- import のみの差分で可読性を下げない
-
-## Naming
-- コンポーネント名は PascalCase
-- hooks は `useXxx`
-- utility は役割がわかる名前にする
-- state 名は意味ベースでつける
-- `temp`, `data`, `item`, `value` のような曖昧名を避ける
-- boolean は `is`, `has`, `can`, `should` で始める
-
-## React / Next.js
-- 1ファイルに責務を詰め込みすぎない
-- page は画面構成中心、UI部品は component に分ける
+## React / Next.js / Vite
+- 1 ファイルに責務を詰め込みすぎない
+- page は画面構成に集中し、ロジックは必要に応じて component や hook に分ける
 - state は必要最小限にする
 - derived state をむやみに持たない
-- mock 準拠で実装し、勝手にUIを広げない
+- mock は早期検証のために使ってよいが、本実装へ持ち込むかは意識する
+- 画面検証だけが目的なら、まず `Vite + React + TypeScript` を優先する
+- `Next.js` は既存構成やルーティング / SSR 前提がある時だけ選ぶ
 
 ## UI implementation
 - 既存コンポーネントを優先再利用する
-- empty / error / success / loading を考慮する
-- モバイル幅で見切れないこと
-- overflow を放置しない
-- spacing や text size を場当たりで増やしすぎない
+- empty / error / success / loading を意識する
+- モバイル時の見切れや overflow を避ける
+- デスクトップ時の余白の使い方も確認する
+- spacing と text size を揃える
+- 固定幅前提で UI を決め打ちしない
+- ウィンドウ幅に応じてレイアウトが自動調整されるようにする
+
+## Stitch ベースの UI ルール
+- Stitch MCP のダウンロード結果は `docs/ui/stitch/<screen-set-name>/` に保存する
+- Stitch の `screen.png` と `code.html` を見ながら UI を作る
+- backlog 詳細化前に、Stitch ベースの runnable UI を 1 度作って確認する
+- Stitch から作った UI は mobile と desktop の両方を確認する
+- 幅を変えた時の主要ブロックの並び順まで確認する
+
+## 実画面確認
+- 実画面確認なしに「修正済み」と断定しない
+- レスポンシブ変更時は少なくとも以下を確認する
+  - 狭い幅
+  - 中間幅
+  - 広い幅
+- DOM の計測値だけでなく、可能ならスクリーンショットか目視でも確認する
+- 実画面確認でずれが出た場合は、先に原因を特定してから修正する
 
 ## Testing
 - 少なくとも typecheck と build は必須
-- UI変更時は主要状態の表示確認を行う
-- バグ修正時は再発防止の観点でテスト追加を検討する
-- Playwright 等がある場合は、主要導線を1本は確認する
+- UI 実装時は主要状態の表示確認を行う
+- バグ修正時は再発確認の観点でテストや確認手順を残す
+- Playwright 等がある場合は、主要導線を 1 本は確認する
+
+## Retrospective
+- 同じ流れが繰り返し発生する場合は skill 化を検討する
+- 今回のような「Stitch ダウンロード結果から minimal React prototype を作って確認する」流れは skill 化候補
 
 ## Completion rule
-次を満たして初めて完了扱いにする。
+次を満たして完了とする。
 - feature spec の done criteria を満たす
 - formatter / linter / typecheck / build が通る
-- review が完了している
+- review を通す
 - 必要な UI 確認が終わっている

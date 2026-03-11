@@ -1,7 +1,4 @@
 node_modules
-.next
-out
 dist
 coverage
 *.log
-next-env.d.ts
