@@ -1,13 +1,19 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type PartId = "standard" | "star" | "heart" | "cat";
 type PreviewMode = "edit" | "preview";
+type UploadStatus = "empty" | "loading" | "ready" | "error";
 
 type PartOption = {
   id: PartId;
   label: string;
   icon: string;
   accent: string;
+};
+
+type UploadedArtwork = {
+  fileName: string;
+  previewUrl: string;
 };
 
 const parts: PartOption[] = [
@@ -17,57 +23,86 @@ const parts: PartOption[] = [
   { id: "cat", label: "猫", icon: "🐾", accent: "#8d98b4" },
 ];
 
-const defaultArtwork =
-  "data:image/svg+xml;utf8," +
-  encodeURIComponent(`
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 480">
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#fff5f0"/>
-          <stop offset="100%" stop-color="#d8ebf8"/>
-        </linearGradient>
-        <linearGradient id="hair" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stop-color="#86614c"/>
-          <stop offset="100%" stop-color="#b58b73"/>
-        </linearGradient>
-      </defs>
-      <rect width="480" height="480" rx="72" fill="url(#bg)"/>
-      <circle cx="240" cy="184" r="92" fill="#f7d7c9"/>
-      <path d="M152 174c12-66 57-100 106-100 54 0 96 36 106 98-28-18-56-28-100-28-38 0-76 10-112 30z" fill="url(#hair)"/>
-      <path d="M146 178c-6 58 2 136 40 182-58-20-92-86-80-142 6-30 20-52 40-66z" fill="url(#hair)"/>
-      <path d="M334 160c34 18 52 52 52 96 0 56-32 104-80 122 30-44 38-108 28-170z" fill="url(#hair)"/>
-      <circle cx="206" cy="193" r="10" fill="#5f483f"/>
-      <circle cx="276" cy="193" r="10" fill="#5f483f"/>
-      <path d="M224 244c10 8 24 8 34 0" stroke="#8e6056" stroke-width="8" stroke-linecap="round" fill="none"/>
-      <path d="M178 292c40 14 84 14 124 0 18 24 26 44 26 76H152c0-32 8-52 26-76z" fill="#fffdfc" opacity="0.92"/>
-      <path d="M176 284c18-18 34-28 66-28 34 0 52 10 70 28" stroke="#c99f8a" stroke-width="12" stroke-linecap="round" fill="none"/>
-      <circle cx="240" cy="34" r="10" fill="#e3eef6"/>
-      <text x="240" y="430" text-anchor="middle" font-size="28" font-family="'Zen Maru Gothic', sans-serif" fill="#70849f">サンプル画像</text>
-    </svg>
-  `);
+const acceptedTypes = ["image/png", "image/jpeg", "image/webp"];
+const acceptedExtensions = [".png", ".jpg", ".jpeg", ".webp"];
+
+const isSupportedImageFile = (file: File) => {
+  const lowerName = file.name.toLowerCase();
+  return (
+    acceptedTypes.includes(file.type) ||
+    acceptedExtensions.some((extension) => lowerName.endsWith(extension))
+  );
+};
 
 function App() {
   const [selectedPart, setSelectedPart] = useState<PartId>("standard");
   const [previewMode, setPreviewMode] = useState<PreviewMode>("edit");
-  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
+  const [uploadStatus, setUploadStatus] = useState<UploadStatus>("empty");
+  const [uploadedArtwork, setUploadedArtwork] = useState<UploadedArtwork | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const activePart = useMemo(
     () => parts.find((part) => part.id === selectedPart) ?? parts[0],
     [selectedPart],
   );
+  const hasUploadedArtwork = uploadedArtwork !== null;
+  const isPreviewReady = hasUploadedArtwork && uploadStatus !== "loading";
+  const uploadCtaTitle = hasUploadedArtwork ? "別の画像に差し替える" : "タップして画像を選択";
+  const uploadCtaDescription = hasUploadedArtwork
+    ? "新しい画像を選ぶと、今のプレビューを保ったまま差し替えできます。"
+    : "PNG / JPG / WEBP に対応。背景透過の画像だと確認しやすいです。";
 
-  const currentImage = uploadedImage ?? defaultArtwork;
+  useEffect(() => {
+    if (isPreviewReady) return;
+
+    setPreviewMode("edit");
+  }, [isPreviewReady]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+    event.target.value = "";
+
     if (!file) return;
 
+    if (!isSupportedImageFile(file)) {
+      setUploadStatus("error");
+      setUploadError(
+        hasUploadedArtwork
+          ? "PNG / JPG / WEBP の画像を選択してください。現在のプレビューはそのまま保持しています。"
+          : "PNG / JPG / WEBP の画像を選択してください。",
+      );
+      return;
+    }
+
+    setUploadStatus("loading");
+    setUploadError(null);
+
     const reader = new FileReader();
+    reader.onerror = () => {
+      setUploadStatus("error");
+      setUploadError(
+        hasUploadedArtwork
+          ? "画像の読み込みに失敗しました。現在のプレビューはそのまま保持しています。"
+          : "画像の読み込みに失敗しました。別のファイルでもう一度お試しください。",
+      );
+    };
     reader.onload = () => {
       const result = reader.result;
       if (typeof result === "string") {
-        setUploadedImage(result);
+        setUploadedArtwork({
+          fileName: file.name,
+          previewUrl: result,
+        });
+        setUploadStatus("ready");
+        return;
       }
+
+      setUploadStatus("error");
+      setUploadError(
+        hasUploadedArtwork
+          ? "プレビューの生成に失敗しました。現在のプレビューはそのまま保持しています。"
+          : "プレビューの生成に失敗しました。",
+      );
     };
     reader.readAsDataURL(file);
   };
@@ -101,9 +136,36 @@ function App() {
                 <div className="upload-badge" aria-hidden="true">
                   🏞️
                 </div>
-                <strong>タップして画像を選択</strong>
-                <span>PNG、JPG 推奨。背景が透過された画像だと確認しやすいです。</span>
+                <strong>{uploadCtaTitle}</strong>
+                <span>{uploadCtaDescription}</span>
               </label>
+
+              <div className={`upload-status-card is-${uploadStatus}`} aria-live="polite">
+                {uploadStatus === "empty" ? (
+                  <>
+                    <strong>画像はまだ選択されていません</strong>
+                    <span>まずはアートワークを 1 枚読み込むと、右側のプレビューに反映されます。</span>
+                  </>
+                ) : null}
+                {uploadStatus === "loading" ? (
+                  <>
+                    <strong>プレビューを作成中です</strong>
+                    <span>選択した画像を読み込んでいます。数秒お待ちください。</span>
+                  </>
+                ) : null}
+                {uploadStatus === "ready" && uploadedArtwork ? (
+                  <>
+                    <strong>画像を読み込みました</strong>
+                    <span>{uploadedArtwork.fileName}</span>
+                  </>
+                ) : null}
+                {uploadStatus === "error" ? (
+                  <>
+                    <strong>画像を読み込めませんでした</strong>
+                    <span>{uploadError}</span>
+                  </>
+                ) : null}
+              </div>
             </section>
 
             <section className="panel">
@@ -157,6 +219,7 @@ function App() {
               <button
                 aria-selected={previewMode === "preview"}
                 className={previewMode === "preview" ? "is-selected" : ""}
+                disabled={!isPreviewReady}
                 onClick={() => setPreviewMode("preview")}
                 role="tab"
                 type="button"
@@ -172,14 +235,44 @@ function App() {
               </div>
 
               <div className="acrylic-card">
-                <img alt="アクキーの完成イメージ" className="artwork" src={currentImage} />
-                {previewMode === "edit" ? (
+                {uploadedArtwork ? (
+                  <img
+                    alt="アクキーの完成イメージ"
+                    className="artwork"
+                    src={uploadedArtwork.previewUrl}
+                  />
+                ) : (
+                  <div className={`artwork-placeholder is-${uploadStatus}`}>
+                    <div className="artwork-placeholder-badge" aria-hidden="true">
+                      {uploadStatus === "error" ? "!" : "＋"}
+                    </div>
+                    <strong>
+                      {uploadStatus === "error"
+                        ? "画像を表示できません"
+                        : "画像をアップロードしてください"}
+                    </strong>
+                    <span>
+                      {uploadStatus === "loading"
+                        ? "読み込み中です..."
+                        : uploadStatus === "error"
+                          ? uploadError
+                          : "選択したアートワークがここに反映されます。"}
+                    </span>
+                  </div>
+                )}
+                {previewMode === "edit" && uploadedArtwork ? (
                   <div className="edit-overlay">
                     <span>ドラッグして配置</span>
                     <small>{activePart.label}パーツで確認中</small>
                   </div>
                 ) : null}
               </div>
+
+              <p className="preview-caption" aria-live="polite">
+                {uploadedArtwork
+                  ? `${activePart.label}パーツでプレビュー中`
+                  : "画像未選択のためプレビューモードは無効です"}
+              </p>
             </div>
           </section>
         </div>

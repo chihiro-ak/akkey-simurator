@@ -129,6 +129,19 @@ button {
   text-align: center;
   gap: 10px;
   color: #647d8e;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease;
+}
+
+.upload-dropzone:hover {
+  transform: translateY(-1px);
+  border-color: #7ecbe4;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.6),
+    0 12px 28px rgba(126, 180, 204, 0.14);
 }
 
 .upload-dropzone strong {
@@ -149,6 +162,44 @@ button {
   place-items: center;
   font-size: 2rem;
   box-shadow: 0 10px 25px rgba(126, 180, 204, 0.18);
+}
+
+.upload-status-card {
+  padding: 14px 16px;
+  border-radius: 20px;
+  display: grid;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+
+.upload-status-card strong {
+  font-size: 0.95rem;
+}
+
+.upload-status-card span {
+  font-size: 0.86rem;
+  color: #61758a;
+  word-break: break-word;
+}
+
+.upload-status-card.is-empty {
+  border: 1px solid rgba(166, 217, 235, 0.6);
+}
+
+.upload-status-card.is-loading {
+  border: 1px solid rgba(126, 203, 228, 0.7);
+  background: linear-gradient(180deg, rgba(229, 246, 251, 0.95), rgba(255, 255, 255, 0.82));
+}
+
+.upload-status-card.is-ready {
+  border: 1px solid rgba(129, 209, 183, 0.72);
+  background: linear-gradient(180deg, rgba(236, 250, 244, 0.96), rgba(255, 255, 255, 0.84));
+}
+
+.upload-status-card.is-error {
+  border: 1px solid rgba(234, 142, 137, 0.75);
+  background: linear-gradient(180deg, rgba(255, 240, 239, 0.96), rgba(255, 255, 255, 0.84));
 }
 
 .parts-grid {
@@ -219,6 +270,11 @@ button {
   background: transparent;
   color: #8190a8;
   font-weight: 700;
+}
+
+.mode-switch button:disabled {
+  cursor: not-allowed;
+  color: #aeb9c7;
 }
 
 .mode-switch button.is-selected {
@@ -313,6 +369,61 @@ button {
   background: #f6f8fb;
 }
 
+.artwork-placeholder {
+  width: 100%;
+  height: 100%;
+  border-radius: 24px;
+  border: 2px dashed rgba(167, 188, 205, 0.8);
+  background:
+    radial-gradient(circle at top, rgba(238, 245, 250, 0.96), rgba(247, 249, 251, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(242, 246, 249, 0.8));
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 24px;
+  text-align: center;
+  color: #698095;
+}
+
+.artwork-placeholder strong {
+  font-size: 1.02rem;
+  color: #314155;
+}
+
+.artwork-placeholder span {
+  max-width: 18rem;
+  font-size: 0.86rem;
+}
+
+.artwork-placeholder.is-error {
+  border-color: rgba(234, 142, 137, 0.78);
+  background:
+    radial-gradient(circle at top, rgba(255, 241, 240, 0.98), rgba(251, 245, 245, 0.98)),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(249, 242, 242, 0.82));
+}
+
+.artwork-placeholder.is-loading {
+  border-color: rgba(126, 203, 228, 0.72);
+}
+
+.artwork-placeholder-badge {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 1.8rem;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.86);
+  color: #7bbfd9;
+  box-shadow: 0 10px 22px rgba(126, 180, 204, 0.15);
+}
+
+.artwork-placeholder.is-error .artwork-placeholder-badge {
+  color: #d77874;
+}
+
 .edit-overlay {
   position: absolute;
   inset: auto 16px 18px;
@@ -340,6 +451,13 @@ button {
   color: rgba(255, 255, 255, 0.78);
 }
 
+.preview-caption {
+  margin: 10px 0 0;
+  text-align: center;
+  font-size: 0.84rem;
+  color: #6c8091;
+}
+
 @media (max-width: 420px) {
   .app-shell {
     padding-inline: 10px;
@@ -360,6 +478,14 @@ button {
   .part-icon {
     border-radius: 20px;
     font-size: 1.55rem;
+  }
+
+  .upload-dropzone {
+    padding-inline: 18px;
+  }
+
+  .artwork-placeholder {
+    padding: 18px;
   }
 }
 

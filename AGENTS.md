@@ -98,7 +98,7 @@
 - high fidelity よりも layout / flow / states の明確化を優先する
 - runnable UI 合意後は、後続 feature のために UI を大きく作り直さない
 - runnable UI の構成を維持し、必要な差し込みに留める
-- typecheck / build / 必要な実行確認を行ってから完了する
+- 検証手順と完了条件の詳細は `docs/00_dev_rules.md` に従う
 
 #### 利用可能スキル
 - `.codex/skills/impeccable_uiux`
@@ -129,6 +129,7 @@
 #### 追加ルール
 - 通常状態だけでなく empty / error / success を見る
 - モバイル幅とデスクトップ幅を必ず確認する
+- 確認環境と実行手順の詳細は `docs/00_dev_rules.md` に従う
 
 ### Retrospective Agent
 #### 役割
