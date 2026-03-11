@@ -1,0 +1,607 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UI Mock Preview</title>
+    <style>
+      :root {
+        --bg: #f6f7f9;
+        --paper: #ffffff;
+        --ink: #1f2937;
+        --muted: #667085;
+        --line: #e5e7eb;
+        --accent: #2563eb;
+        --accent-2: #1d4ed8;
+        --error: #c85656;
+        --ok: #4c8b60;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        font-family: "Yu Gothic", "Hiragino Sans", sans-serif;
+        color: var(--ink);
+        background: linear-gradient(180deg, #fbfcff, var(--bg));
+      }
+      .page { max-width: 1280px; margin: 0 auto; padding: 24px; }
+      .hero, .board, .side {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.06);
+      }
+      .hero { padding: 18px 20px; margin-bottom: 14px; }
+      .hero h1 { margin: 8px 0; font-size: clamp(1.5rem, 3vw, 2.4rem); line-height: 1.05; letter-spacing: -0.04em; }
+      .hero p { margin: 0; color: var(--muted); line-height: 1.7; }
+      .tag {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: #eef4ff;
+        color: var(--accent-2);
+      }
+      .controls, .switches { display: flex; flex-wrap: wrap; gap: 10px; }
+      .controls { margin-bottom: 16px; }
+      .control-group { display: grid; gap: 6px; }
+      .control-label {
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: 0.04em;
+        color: var(--muted);
+        text-transform: uppercase;
+      }
+      .switches {
+        padding: 8px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #f8fafc;
+      }
+      button {
+        border: 0;
+        background: transparent;
+        color: inherit;
+        font: inherit;
+        cursor: pointer;
+      }
+      .switches button {
+        padding: 10px 14px;
+        border-radius: 999px;
+        font-weight: 700;
+        color: var(--muted);
+      }
+      .switches button[aria-pressed="true"] {
+        background: var(--paper);
+        color: var(--ink);
+        box-shadow: 0 8px 18px rgba(47, 37, 28, 0.09);
+      }
+      .layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
+      .board { padding: 16px; }
+      .app {
+        min-height: 760px;
+        padding: 20px;
+        border: 1px solid var(--line);
+        border-radius: 22px;
+        background: linear-gradient(180deg, #ffffff, #f8fafc);
+      }
+      .topbar, .steps, .summary, .btns { display: flex; gap: 10px; flex-wrap: wrap; }
+      .topbar { justify-content: space-between; align-items: center; margin-bottom: 16px; }
+      .title { font-size: 1.8rem; font-weight: 800; letter-spacing: -0.04em; }
+      .state {
+        padding: 10px 14px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 700;
+        background: #eff6ff;
+      }
+      .steps { margin-bottom: 18px; }
+      .step {
+        flex: 1 1 150px;
+        padding: 12px;
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        color: var(--muted);
+        font-size: 14px;
+        font-weight: 700;
+        background: #f8fafc;
+      }
+      .step.active { color: var(--ink); background: #eff6ff; border-color: #bfdbfe; }
+      .step.done { color: var(--accent-2); }
+      .feature { display: none; }
+      .feature.active { display: block; }
+      .grid { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 16px; }
+      .panel, .canvas, .mini {
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        background: rgba(255,255,255,0.96);
+      }
+      .panel { padding: 18px; }
+      .panel h2, .panel h3 { margin: 0 0 8px; letter-spacing: -0.03em; }
+      .panel p, .panel li { color: var(--muted); line-height: 1.7; }
+      .drop {
+        min-height: 220px;
+        display: grid;
+        place-items: center;
+        text-align: center;
+        border: 2px dashed #bfdbfe;
+        border-radius: 20px;
+        background: linear-gradient(135deg, #f8fbff, #ffffff);
+      }
+      .drop strong { display: block; margin-bottom: 8px; font-size: 1.1rem; }
+      .btns { margin-top: 14px; }
+      .btn, .ghost {
+        padding: 12px 16px;
+        border-radius: 999px;
+        font-weight: 700;
+      }
+      .btn { color: #fff; background: linear-gradient(180deg, var(--accent), var(--accent-2)); }
+      .ghost { border: 1px solid var(--line); background: #f8fafc; }
+      .disabled { opacity: 0.45; pointer-events: none; }
+      .msg { margin-top: 14px; padding: 12px 14px; border-radius: 14px; font-weight: 700; font-size: 14px; background: #f3f4f6; }
+      .msg.ok { background: #eaf6ee; color: var(--ok); }
+      .msg.err { background: #fcebec; color: var(--error); }
+      .canvas {
+        min-height: 520px;
+        padding: 16px;
+        position: relative;
+        overflow: hidden;
+        background: radial-gradient(circle at top, #eef6ff, transparent 40%), linear-gradient(180deg, #ffffff, #f8fafc);
+      }
+      .cap {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 700;
+        background: rgba(255,255,255,0.9);
+      }
+      .empty {
+        width: min(320px, 62%);
+        aspect-ratio: 1 / 1.05;
+        margin: 90px auto 0;
+        border: 3px dashed #cbd5e1;
+        border-radius: 36% 42% 32% 34%;
+        position: relative;
+      }
+      .empty::after {
+        content: "画像未選択";
+        position: absolute;
+        left: 0; right: 0; bottom: 18px;
+        text-align: center;
+        color: var(--muted);
+        font-weight: 700;
+      }
+      .art { position: relative; width: 240px; height: 300px; margin: 80px auto 0; }
+      .art.draggable { cursor: grab; touch-action: none; }
+      .art.dragging { cursor: grabbing; }
+      #adjustArt { position: absolute; margin: 0; }
+      .head, .body, .limb, .ring, .hook, .dot {
+        position: absolute;
+        border: 3px solid #695948;
+        background: #f5d7a5;
+      }
+      .head {
+        top: 12px; left: 64px; width: 112px; height: 96px;
+        border-radius: 48% 48% 38% 38%;
+      }
+      .body {
+        top: 68px; left: 38px; width: 164px; height: 184px;
+        border-radius: 42% 42% 32% 32%;
+      }
+      .limb.arm-l { top: 150px; left: 14px; width: 44px; height: 30px; border-radius: 999px; }
+      .limb.arm-r { top: 150px; right: 14px; width: 44px; height: 30px; border-radius: 999px; }
+      .limb.leg-l { bottom: 0; left: 78px; width: 28px; height: 52px; border-top: 0; border-radius: 0 0 16px 16px; }
+      .limb.leg-r { bottom: 0; right: 78px; width: 28px; height: 52px; border-top: 0; border-radius: 0 0 16px 16px; }
+      .ring {
+        top: -4px; left: 106px; width: 28px; height: 28px;
+        border-radius: 50%; background: #f7e8cf;
+      }
+      .hook {
+        top: 24px; left: 109px; width: 22px; height: 34px;
+        border-radius: 999px; background: #f7e8cf;
+      }
+      .dot {
+        top: 88px; left: 120px; width: 18px; height: 18px;
+        border: 4px solid #fff; border-radius: 50%;
+        background: var(--accent-2);
+        box-shadow: 0 0 0 4px rgba(29,78,216,0.18);
+      }
+      .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+      .card {
+        padding: 14px 10px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        text-align: center;
+        font-weight: 700;
+        background: #ffffff;
+      }
+      .card.active { background: #eff6ff; border-color: #bfdbfe; }
+      .bar { margin-top: 12px; }
+      .bar label {
+        display: flex; justify-content: space-between; margin-bottom: 6px;
+        font-size: 14px; font-weight: 700;
+      }
+      .track {
+        height: 12px;
+        border-radius: 999px;
+        background: #dbeafe;
+        position: relative;
+      }
+      .track::after {
+        content: "";
+        position: absolute;
+        left: 56%;
+        top: 2px;
+        width: 24px;
+        height: 8px;
+        border-radius: 999px;
+        background: var(--paper);
+      }
+      .summary { margin-bottom: 14px; }
+      .mini { padding: 14px; flex: 1 1 180px; }
+      .swing .art { transform-origin: top center; animation: sway 3s ease-in-out infinite; }
+      .swing.replay .art { animation: sway 1.6s ease-in-out 1; }
+      ul { padding-left: 18px; }
+      .inline-note {
+        margin-top: 10px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+      .prod-toolbar {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: center;
+        margin-bottom: 14px;
+      }
+      .prod-toolbar .tiny-chip {
+        padding: 8px 10px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        font-size: 12px;
+        color: var(--muted);
+        background: #fff;
+      }
+      @keyframes sway {
+        0%,100% { transform: rotate(0deg); }
+        22% { transform: rotate(8deg); }
+        55% { transform: rotate(-6deg); }
+        80% { transform: rotate(4deg); }
+      }
+      @media (max-width: 1024px) {
+        .grid { grid-template-columns: 1fr; }
+      }
+      @media (max-width: 720px) {
+        .page { padding: 14px; }
+        .cards { grid-template-columns: 1fr; }
+        .grid { grid-template-columns: 1fr; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <section class="hero">
+        <span class="tag">Preview Build</span>
+        <h1>アクキーシミュレーター 画面プレビュー</h1>
+        <p>本番画面に近い見た目で、主要状態と画面遷移を確認できる HTML プレビュー。</p>
+      </section>
+
+      <div class="controls">
+        <div class="control-group">
+          <div class="control-label">画面</div>
+          <div class="switches" id="featureTabs">
+            <button type="button" data-feature="upload" aria-pressed="true">FEAT-001 画像</button>
+            <button type="button" data-feature="adjust" aria-pressed="false">FEAT-002 金具と位置</button>
+            <button type="button" data-feature="preview" aria-pressed="false">FEAT-003 プレビュー</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <div class="control-label">状態</div>
+          <div class="switches" id="stateTabs">
+            <button type="button" data-state="empty" aria-pressed="true">empty</button>
+            <button type="button" data-state="loading" aria-pressed="false">loading</button>
+            <button type="button" data-state="error" aria-pressed="false">error</button>
+            <button type="button" data-state="success" aria-pressed="false">success</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="layout">
+        <section class="board">
+          <div class="app">
+            <div class="prod-toolbar">
+              <div class="tiny-chip">Preview Mode</div>
+              <div class="tiny-chip">画像 / 金具 / 位置 / プレビュー</div>
+            </div>
+            <div class="topbar">
+              <div class="title">アクキーシミュレーター</div>
+              <div class="state" id="stateLabel">現在の状態: empty</div>
+            </div>
+            <div class="steps">
+              <div class="step active" data-step="1">1. 画像</div>
+              <div class="step" data-step="2">2. 金具</div>
+              <div class="step" data-step="3">3. 位置</div>
+              <div class="step" data-step="4">4. プレビュー</div>
+            </div>
+
+            <div class="feature active" data-panel="upload">
+              <div class="grid">
+                <div class="panel">
+                  <h2>1. キーホルダーにしたい画像を選ぶ</h2>
+                  <p>透過 PNG を使うと仕上がりを確認しやすい。画像読込後に次の操作を強く見せる。</p>
+                  <div class="drop">
+                    <div>
+                      <strong id="uploadTitle">画像をここへドロップ</strong>
+                      <div id="uploadSub">またはボタンから選択</div>
+                    </div>
+                  </div>
+                  <div class="btns">
+                    <button class="btn" type="button">画像を選択</button>
+                    <button class="ghost disabled" id="replaceBtn" type="button">差し替える</button>
+                  </div>
+                  <div class="msg" id="uploadMsg">まずはキーホルダーにしたい画像を 1 枚選んでください。</div>
+                  <div class="btns">
+                    <button class="btn disabled" id="uploadNext" type="button">次へ: 金具を選ぶ</button>
+                  </div>
+                </div>
+                <div class="canvas">
+                  <div class="cap">完成イメージの元画像</div>
+                  <div id="uploadVisual" class="empty"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="feature" data-panel="adjust">
+              <div class="grid">
+                <div class="panel">
+                  <h2>2. 金具を選ぶ / 3. 穴位置を合わせる</h2>
+                  <p>ドラッグしづらい状況のため、金具選択と位置調整にスライダー補助を併設する。</p>
+                  <div class="cards">
+                    <button class="card active" type="button">ナスカン</button>
+                    <button class="card" type="button">ストラップ</button>
+                    <button class="card" type="button">ボールチェーン</button>
+                  </div>
+                  <div class="msg ok" id="adjustChoice">選択中: ナスカン。後から変更できます。</div>
+                  <div class="bar"><label><span>X位置</span><span>56%</span></label><div class="track"></div></div>
+                  <div class="bar"><label><span>Y位置</span><span>18%</span></label><div class="track"></div></div>
+                  <div class="btns">
+                    <button class="ghost" type="button">中央に戻す</button>
+                    <button class="ghost" type="button">少し上へ</button>
+                  </div>
+                  <div class="msg" id="adjustMsg">ドラッグしづらい場合は下のスライダーで調整できます。</div>
+                  <div class="btns">
+                    <button class="ghost" type="button">戻る: 画像</button>
+                    <button class="btn" id="adjustNext" type="button">次へ: プレビュー</button>
+                  </div>
+                </div>
+                <div class="canvas" id="adjustCanvas">
+                  <div class="cap">金具と穴位置の調整キャンバス</div>
+                  <div class="art draggable" id="adjustArt">
+                    <div class="ring"></div>
+                    <div class="hook"></div>
+                    <div class="head"></div>
+                    <div class="body"></div>
+                    <div class="limb arm-l"></div>
+                    <div class="limb arm-r"></div>
+                    <div class="limb leg-l"></div>
+                    <div class="limb leg-r"></div>
+                    <div class="dot" id="adjustDot"></div>
+                  </div>
+                  <div class="inline-note">金具とキーホルダーをドラッグして、穴位置が自然に見える位置へ合わせる。</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="feature" data-panel="preview">
+              <div class="summary">
+                <div class="mini"><strong>画像</strong><div>設定済み</div></div>
+                <div class="mini"><strong>金具</strong><div>ナスカン</div></div>
+                <div class="mini"><strong>穴位置</strong><div>上部中央より少し左</div></div>
+              </div>
+              <div class="canvas swing" id="previewCanvas">
+                <div class="cap">完成イメージを確認する</div>
+                <div class="art">
+                  <div class="ring"></div>
+                  <div class="hook"></div>
+                  <div class="head"></div>
+                  <div class="body"></div>
+                  <div class="limb arm-l"></div>
+                  <div class="limb arm-r"></div>
+                  <div class="limb leg-l"></div>
+                  <div class="limb leg-r"></div>
+                  <div class="dot"></div>
+                </div>
+              </div>
+              <div class="grid" style="margin-top:16px">
+                <div class="panel">
+                  <h3>動きの見え方メモ</h3>
+                  <ul>
+                    <li>穴が上にあるほど安定して見える</li>
+                    <li>少し左寄せなので左へ傾く印象がある</li>
+                  </ul>
+                </div>
+                <div class="panel">
+                  <h3>操作</h3>
+                  <div class="btns">
+                    <button class="ghost" type="button">戻る: 位置を調整</button>
+                    <button class="btn" id="replayBtn" type="button">もう一度ゆらす</button>
+                    <button class="ghost disabled" type="button">公開する(準備中)</button>
+                  </div>
+                  <div class="msg ok" id="previewMsg">設定が反映されました。見た目と揺れ方の傾向を確認してください。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <script>
+      const featureTabs = document.querySelectorAll("#featureTabs button");
+      const stateTabs = document.querySelectorAll("#stateTabs button");
+      const panels = document.querySelectorAll(".feature");
+      const steps = document.querySelectorAll(".step");
+      const stateLabel = document.getElementById("stateLabel");
+      const previewCanvas = document.getElementById("previewCanvas");
+      const uploadTitle = document.getElementById("uploadTitle");
+      const uploadSub = document.getElementById("uploadSub");
+      const uploadMsg = document.getElementById("uploadMsg");
+      const uploadVisual = document.getElementById("uploadVisual");
+      const uploadNext = document.getElementById("uploadNext");
+      const replaceBtn = document.getElementById("replaceBtn");
+      const adjustMsg = document.getElementById("adjustMsg");
+      const adjustChoice = document.getElementById("adjustChoice");
+      const adjustNext = document.getElementById("adjustNext");
+      const adjustCanvas = document.getElementById("adjustCanvas");
+      const adjustArt = document.getElementById("adjustArt");
+      const previewMsg = document.getElementById("previewMsg");
+      const replayBtn = document.getElementById("replayBtn");
+      const adjustDot = document.getElementById("adjustDot");
+
+      let currentFeature = "upload";
+      let dragState = null;
+
+      function setPressed(nodes, key, value) {
+        nodes.forEach((node) => node.setAttribute("aria-pressed", String(node.dataset[key] === value)));
+      }
+
+      function artMarkup() {
+        return '<div class="art"><div class="ring"></div><div class="hook"></div><div class="head"></div><div class="body"></div><div class="limb arm-l"></div><div class="limb arm-r"></div><div class="limb leg-l"></div><div class="limb leg-r"></div><div class="dot"></div></div>';
+      }
+
+      function setFeature(feature) {
+        currentFeature = feature;
+        setPressed(featureTabs, "feature", feature);
+        panels.forEach((panel) => panel.classList.toggle("active", panel.dataset.panel === feature));
+        const maxStep = feature === "upload" ? 1 : feature === "adjust" ? 3 : 4;
+        steps.forEach((step) => {
+          const n = Number(step.dataset.step);
+          step.classList.toggle("active", feature === "adjust" ? n === 2 || n === 3 : n === maxStep);
+          step.classList.toggle("done", n < maxStep);
+        });
+        if (feature === "adjust") {
+          requestAnimationFrame(() => {
+            if (!adjustArt.style.left || adjustArt.style.left === "-136px") {
+              setAdjustPosition(adjustCanvas.clientWidth / 2, 80);
+            }
+          });
+        }
+      }
+
+      function setState(state) {
+        setPressed(stateTabs, "state", state);
+        stateLabel.textContent = `現在の状態: ${state}`;
+
+        uploadVisual.className = state === "success" ? "" : "empty";
+        uploadVisual.innerHTML = state === "success" ? artMarkup() : "";
+        uploadTitle.textContent = state === "loading" ? "画像を読み込んでいます" : state === "error" ? "読込エラー" : state === "success" ? "画像を読み込みました" : "画像をここへドロップ";
+        uploadSub.textContent = state === "loading" ? "数秒でプレビューが表示されます" : state === "error" ? "形式を見直して再選択" : state === "success" ? "そのまま金具選択へ進めます" : "またはボタンから選択";
+        uploadMsg.className = `msg ${state === "error" ? "err" : state === "success" ? "ok" : ""}`.trim();
+        uploadMsg.textContent = state === "error"
+          ? "この形式は読み込めません。PNG または JPG を選んでください。"
+          : state === "success"
+          ? "画像を読み込みました。次に金具を選びます。"
+          : state === "loading"
+          ? "長い待機は想定せず、カード内で短くローディングを見せる。"
+          : "まずはキーホルダーにしたい画像を 1 枚選んでください。";
+        uploadNext.classList.toggle("disabled", state !== "success");
+        replaceBtn.classList.toggle("disabled", state === "empty");
+
+        adjustMsg.className = `msg ${state === "error" ? "err" : state === "success" ? "ok" : ""}`.trim();
+        adjustChoice.className = `msg ${state === "error" ? "err" : "ok"}`.trim();
+        adjustMsg.textContent = state === "error"
+          ? "金具が未選択のためプレビューに進めません。"
+          : state === "success"
+          ? "この位置で揺れ方を確認できます。"
+          : state === "loading"
+          ? "画像の準備が完了したら位置調整を始められます。"
+          : "先に画像を設定してください。";
+        adjustChoice.textContent = state === "error"
+          ? "位置ハンドルは境界外に出せない。"
+          : state === "empty"
+          ? "金具候補は見えるが、画像読込後に活性化する。"
+          : "選択中: ナスカン。後から変更できます。";
+        adjustNext.classList.toggle("disabled", state !== "success");
+        adjustCanvas.style.opacity = state === "empty" ? "0.58" : state === "loading" ? "0.85" : "1";
+        adjustArt.style.display = state === "empty" ? "none" : "block";
+        if (state !== "empty") {
+          if (!adjustArt.style.left || adjustArt.style.left === "-136px") {
+            requestAnimationFrame(() => setAdjustPosition(adjustCanvas.clientWidth / 2, 80));
+          }
+        }
+
+        previewCanvas.style.opacity = state === "empty" ? "0.62" : state === "loading" ? "0.82" : state === "error" ? "0.74" : "1";
+        previewMsg.className = `msg ${state === "error" ? "err" : state === "success" ? "ok" : ""}`.trim();
+        previewMsg.textContent = state === "error"
+          ? "必要な設定が足りないため表示できません。位置調整に戻ってください。"
+          : state === "success"
+          ? "設定が反映されました。見た目と揺れ方の傾向を確認してください。"
+          : state === "loading"
+          ? "プレビューを準備しています。戻る導線は残す。"
+          : "必要な設定が足りないため表示できません。";
+      }
+
+      featureTabs.forEach((tab) => tab.addEventListener("click", () => setFeature(tab.dataset.feature)));
+      stateTabs.forEach((tab) => tab.addEventListener("click", () => setState(tab.dataset.state)));
+      replayBtn.addEventListener("click", () => {
+        previewCanvas.classList.remove("replay");
+        void previewCanvas.offsetWidth;
+        previewCanvas.classList.add("replay");
+        setTimeout(() => previewCanvas.classList.remove("replay"), 1600);
+      });
+
+      function clamp(value, min, max) {
+        return Math.min(Math.max(value, min), max);
+      }
+
+      function setAdjustPosition(left, top) {
+        const rect = adjustCanvas.getBoundingClientRect();
+        const artWidth = adjustArt.offsetWidth || 240;
+        const artHeight = adjustArt.offsetHeight || 300;
+        const clampedLeft = clamp(left, artWidth / 2 + 16, rect.width - artWidth / 2 - 16);
+        const clampedTop = clamp(top, 56, rect.height - artHeight - 24);
+        adjustArt.style.left = `${clampedLeft}px`;
+        adjustArt.style.top = `${clampedTop}px`;
+        adjustArt.style.transform = "translateX(-50%)";
+      }
+
+      function startDrag(event) {
+        if (adjustArt.style.display === "none") return;
+        const rect = adjustArt.getBoundingClientRect();
+        dragState = {
+          offsetX: event.clientX - rect.left,
+          offsetY: event.clientY - rect.top
+        };
+        adjustArt.classList.add("dragging");
+      }
+
+      function moveDrag(event) {
+        if (!dragState) return;
+        const canvasRect = adjustCanvas.getBoundingClientRect();
+        const nextLeft = event.clientX - canvasRect.left - dragState.offsetX + adjustArt.offsetWidth / 2;
+        const nextTop = event.clientY - canvasRect.top - dragState.offsetY;
+        setAdjustPosition(nextLeft, nextTop);
+      }
+
+      function endDrag() {
+        if (!dragState) return;
+        dragState = null;
+        adjustArt.classList.remove("dragging");
+      }
+
+      adjustArt.addEventListener("pointerdown", startDrag);
+      window.addEventListener("pointerup", endDrag);
+      window.addEventListener("pointercancel", endDrag);
+      window.addEventListener("pointermove", moveDrag);
+      adjustArt.addEventListener("mousedown", startDrag);
+      window.addEventListener("mousemove", moveDrag);
+      window.addEventListener("mouseup", endDrag);
+
+      setFeature(currentFeature);
+      setState("empty");
+    </script>
+  </body>
+</html>
