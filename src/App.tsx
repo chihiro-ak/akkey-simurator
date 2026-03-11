@@ -17,10 +17,10 @@ type UploadedArtwork = {
 };
 
 const parts: PartOption[] = [
-  { id: "standard", label: "標準", icon: "🔗", accent: "#7ecbe4" },
+  { id: "standard", label: "丸形", icon: "◯", accent: "#7ecbe4" },
   { id: "star", label: "星", icon: "★", accent: "#95a0bf" },
   { id: "heart", label: "ハート", icon: "♥", accent: "#8f9bb8" },
-  { id: "cat", label: "猫", icon: "🐾", accent: "#8d98b4" },
+  { id: "cat", label: "猫", icon: "🐱", accent: "#8d98b4" },
 ];
 
 const acceptedTypes = ["image/png", "image/jpeg", "image/webp"];
@@ -47,10 +47,12 @@ function App() {
   );
   const hasUploadedArtwork = uploadedArtwork !== null;
   const isPreviewReady = hasUploadedArtwork && uploadStatus !== "loading";
-  const uploadCtaTitle = hasUploadedArtwork ? "別の画像に差し替える" : "タップして画像を選択";
+  const uploadCtaTitle = hasUploadedArtwork
+    ? "別の画像に差し替える"
+    : "タップして画像を選択";
   const uploadCtaDescription = hasUploadedArtwork
-    ? "新しい画像を選ぶと、今のプレビューを保ったまま差し替えできます。"
-    : "PNG / JPG / WEBP に対応。背景透過の画像だと確認しやすいです。";
+    ? "新しい画像を選ぶと、今のプレビューを差し替えます。"
+    : "";
 
   useEffect(() => {
     if (isPreviewReady) return;
@@ -113,9 +115,6 @@ function App() {
         <header className="hero">
           <p className="hero-kicker">Acrylic Keychain Maker</p>
           <h1>アクキーシミュレーター</h1>
-          <p className="hero-copy">
-            画像を選んで、パーツを切り替えながら完成イメージを確認できます。
-          </p>
         </header>
 
         <div className="content-layout">
@@ -140,17 +139,16 @@ function App() {
                 <span>{uploadCtaDescription}</span>
               </label>
 
-              <div className={`upload-status-card is-${uploadStatus}`} aria-live="polite">
+              {/* <div className={`upload-status-card is-${uploadStatus}`} aria-live="polite">
                 {uploadStatus === "empty" ? (
                   <>
-                    <strong>画像はまだ選択されていません</strong>
-                    <span>まずはアートワークを 1 枚読み込むと、右側のプレビューに反映されます。</span>
+                    <strong>画像を選択してください</strong>
                   </>
                 ) : null}
                 {uploadStatus === "loading" ? (
                   <>
                     <strong>プレビューを作成中です</strong>
-                    <span>選択した画像を読み込んでいます。数秒お待ちください。</span>
+                    <span>選択した画像を読み込んでいます。少しお待ちください。</span>
                   </>
                 ) : null}
                 {uploadStatus === "ready" && uploadedArtwork ? (
@@ -165,7 +163,7 @@ function App() {
                     <span>{uploadError}</span>
                   </>
                 ) : null}
-              </div>
+              </div> */}
             </section>
 
             <section className="panel">
@@ -256,7 +254,7 @@ function App() {
                         ? "読み込み中です..."
                         : uploadStatus === "error"
                           ? uploadError
-                          : "選択したアートワークがここに反映されます。"}
+                          : ""}
                     </span>
                   </div>
                 )}
@@ -269,9 +267,7 @@ function App() {
               </div>
 
               <p className="preview-caption" aria-live="polite">
-                {uploadedArtwork
-                  ? `${activePart.label}パーツでプレビュー中`
-                  : "画像未選択のためプレビューモードは無効です"}
+                {uploadedArtwork ? `${activePart.label}パーツでプレビュー中` : ""}
               </p>
             </div>
           </section>
