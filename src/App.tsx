@@ -1,14 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 
-type PartId = "standard" | "star" | "heart" | "cat";
+import ballChainImage from "./assets/parts/ball-chain.png";
+import nasukanImage from "./assets/parts/nasukan.png";
+import strapImage from "./assets/parts/strap.png";
+
+type PartId = "nasukan" | "ball-chain" | "strap";
 type PreviewMode = "edit" | "preview";
 type UploadStatus = "empty" | "loading" | "ready" | "error";
 
 type PartOption = {
   id: PartId;
   label: string;
-  icon: string;
-  accent: string;
+  image: string;
+  fallbackIcon: string;
 };
 
 type UploadedArtwork = {
@@ -17,14 +21,19 @@ type UploadedArtwork = {
 };
 
 const parts: PartOption[] = [
-  { id: "standard", label: "丸形", icon: "◯", accent: "#7ecbe4" },
-  { id: "star", label: "星", icon: "★", accent: "#95a0bf" },
-  { id: "heart", label: "ハート", icon: "♥", accent: "#8f9bb8" },
-  { id: "cat", label: "猫", icon: "🐱", accent: "#8d98b4" },
+  { id: "nasukan", label: "ナスカン", image: nasukanImage, fallbackIcon: "◎" },
+  { id: "ball-chain", label: "ボールチェーン", image: ballChainImage, fallbackIcon: "◌" },
+  { id: "strap", label: "ストラップ", image: strapImage, fallbackIcon: "◍" },
 ];
 
 const acceptedTypes = ["image/png", "image/jpeg", "image/webp"];
 const acceptedExtensions = [".png", ".jpg", ".jpeg", ".webp"];
+
+const initialImageAvailability: Record<PartId, boolean> = {
+  nasukan: true,
+  "ball-chain": true,
+  strap: true,
+};
 
 const isSupportedImageFile = (file: File) => {
   const lowerName = file.name.toLowerCase();
@@ -35,11 +44,12 @@ const isSupportedImageFile = (file: File) => {
 };
 
 function App() {
-  const [selectedPart, setSelectedPart] = useState<PartId>("standard");
+  const [selectedPart, setSelectedPart] = useState<PartId>("nasukan");
   const [previewMode, setPreviewMode] = useState<PreviewMode>("edit");
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>("empty");
   const [uploadedArtwork, setUploadedArtwork] = useState<UploadedArtwork | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [imageAvailability, setImageAvailability] = useState(initialImageAvailability);
 
   const activePart = useMemo(
     () => parts.find((part) => part.id === selectedPart) ?? parts[0],
@@ -47,6 +57,7 @@ function App() {
   );
   const hasUploadedArtwork = uploadedArtwork !== null;
   const isPreviewReady = hasUploadedArtwork && uploadStatus !== "loading";
+  const isPartImageAvailable = imageAvailability[activePart.id];
   const uploadCtaTitle = hasUploadedArtwork
     ? "別の画像に差し替える"
     : "タップして画像を選択";
@@ -107,6 +118,12 @@ function App() {
       );
     };
     reader.readAsDataURL(file);
+  };
+
+  const handlePartImageError = (partId: PartId) => {
+    setImageAvailability((current) =>
+      current[partId] ? { ...current, [partId]: false } : current,
+    );
   };
 
   return (
@@ -183,12 +200,19 @@ function App() {
                       onClick={() => setSelectedPart(part.id)}
                       type="button"
                     >
-                      <span
-                        aria-hidden="true"
-                        className="part-icon"
-                        style={{ color: isActive ? part.accent : undefined }}
-                      >
-                        {part.icon}
+                      <span aria-hidden="true" className="part-icon">
+                        {imageAvailability[part.id] ? (
+                          <span className="part-image-crop">
+                            <img
+                              alt=""
+                              className="part-image"
+                              onError={() => handlePartImageError(part.id)}
+                              src={part.image}
+                            />
+                          </span>
+                        ) : (
+                          part.fallbackIcon
+                        )}
                       </span>
                       <span className="part-label">{part.label}</span>
                     </button>
@@ -227,9 +251,19 @@ function App() {
             </div>
 
             <div className={`preview-stage ${previewMode === "preview" ? "is-clean" : ""}`}>
-              <div className={`hanger hanger-${activePart.id}`} aria-hidden="true">
-                <span className="hanger-loop" />
-                <span className="hanger-arm" />
+              <div className="preview-hardware" aria-hidden="true">
+                {isPartImageAvailable ? (
+                  <span className="preview-image-crop">
+                    <img
+                      alt=""
+                      className="preview-image"
+                      onError={() => handlePartImageError(activePart.id)}
+                      src={activePart.image}
+                    />
+                  </span>
+                ) : (
+                  <span className="preview-fallback">{activePart.fallbackIcon}</span>
+                )}
               </div>
 
               <div className="acrylic-card">

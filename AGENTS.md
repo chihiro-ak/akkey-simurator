@@ -64,6 +64,7 @@
 - loading / empty / error / success / disabled を意識する
 - モバイル時の見切れや overflow を避け、desktop の余白も確認する
 - 幅に応じて主要ブロックが自然に再配置されるようにする
+- 実装後は必ず `git diff` で自分の差分を確認し、feature scope に不要な文言変更、命名変更、スタイル変更、リファクタを含めないこと
 - 実装完了前に review と QA を通す
 - 不要な docs を増やしすぎない
 - 迷ったら scope を狭くする
