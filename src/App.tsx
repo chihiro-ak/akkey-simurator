@@ -24,6 +24,7 @@ type ArtworkContour = {
   centerOfMassYPercent: number;
   firstOpaquePercent: number;
   lastOpaquePercent: number;
+  meanSquaredRadiusLocal: number;
   topOpaquePercent: number;
   bottomOpaquePercent: number;
   topEdgeByPercent: Array<number | null>;
@@ -78,65 +79,65 @@ const holePositionMin = 18;
 const holePositionMax = 82;
 const defaultHolePosition = 50;
 const contourAlphaThreshold = 16;
-const previewAngleLimit = Math.PI * 0.28;
-const previewDragVelocityLimit = 2.4;
+const previewAngleLimit = Math.PI * 0.32;
+const previewDragVelocityLimit = 1.4;
 
 const partMotionProfiles: Record<
   PartId,
   PreviewPhysicsProfile
 > = {
   nasukan: {
-    alignDamping: 8.8,
-    alignStiffness: 6.4,
-    angularDamping: 0.986,
-    combinedComTorqueScale: 0.32,
-    desiredAngleFollow: 0.24,
-    dragDamping: 10.4,
-    dragFollowStiffness: 30,
-    hardwareMass: 0.78,
+    alignDamping: 4.9,
+    alignStiffness: 6.3,
+    angularDamping: 0.994,
+    combinedComTorqueScale: 0.39,
+    desiredAngleFollow: 0.16,
+    dragDamping: 8.6,
+    dragFollowStiffness: 13.5,
+    hardwareMass: 0.22,
     holeConstraintDamping: 14,
     holeConstraintStiffness: 92,
     inertiaBase: 0.32,
     linearDamping: 0.988,
-    maxAngularSpeed: 3.1,
+    maxAngularSpeed: 4.3,
     maxSpeed: 2.7,
     positionCorrection: 0.02,
     totalMass: 1.98,
     velocityCorrection: 0.06,
   },
   "ball-chain": {
-    alignDamping: 8.2,
+    alignDamping: 4.7,
     alignStiffness: 5.9,
-    angularDamping: 0.9865,
-    combinedComTorqueScale: 0.29,
-    desiredAngleFollow: 0.22,
-    dragDamping: 9.6,
-    dragFollowStiffness: 28,
-    hardwareMass: 0.46,
+    angularDamping: 0.994,
+    combinedComTorqueScale: 0.37,
+    desiredAngleFollow: 0.16,
+    dragDamping: 8.2,
+    dragFollowStiffness: 12.8,
+    hardwareMass: 0.14,
     holeConstraintDamping: 13,
     holeConstraintStiffness: 88,
     inertiaBase: 0.3,
     linearDamping: 0.989,
-    maxAngularSpeed: 3.2,
+    maxAngularSpeed: 4.35,
     maxSpeed: 2.9,
     positionCorrection: 0.018,
     totalMass: 1.66,
     velocityCorrection: 0.055,
   },
   strap: {
-    alignDamping: 8,
-    alignStiffness: 5.8,
-    angularDamping: 0.9868,
-    combinedComTorqueScale: 0.28,
-    desiredAngleFollow: 0.22,
-    dragDamping: 9.8,
-    dragFollowStiffness: 29,
-    hardwareMass: 0.38,
+    alignDamping: 4.6,
+    alignStiffness: 5.7,
+    angularDamping: 0.994,
+    combinedComTorqueScale: 0.36,
+    desiredAngleFollow: 0.16,
+    dragDamping: 8.1,
+    dragFollowStiffness: 12.6,
+    hardwareMass: 0.12,
     holeConstraintDamping: 13,
     holeConstraintStiffness: 86,
     inertiaBase: 0.29,
     linearDamping: 0.989,
-    maxAngularSpeed: 3.2,
+    maxAngularSpeed: 4.35,
     maxSpeed: 2.8,
     positionCorrection: 0.018,
     totalMass: 1.58,
@@ -216,6 +217,8 @@ const analyzeArtworkContour = (source: string) =>
       const bounds = getContainBounds(image.naturalWidth, image.naturalHeight);
       let alphaWeightedX = 0;
       let alphaWeightedY = 0;
+      let alphaWeightedX2 = 0;
+      let alphaWeightedY2 = 0;
       let totalAlpha = 0;
       let topOpaqueRow = canvasHeight - 1;
       let bottomOpaqueRow = 0;
@@ -255,6 +258,8 @@ const analyzeArtworkContour = (source: string) =>
 
           alphaWeightedX += x * alpha;
           alphaWeightedY += y * alpha;
+          alphaWeightedX2 += x * x * alpha;
+          alphaWeightedY2 += y * y * alpha;
           totalAlpha += alpha;
           topOpaqueRow = Math.min(topOpaqueRow, y);
           bottomOpaqueRow = Math.max(bottomOpaqueRow, y);
@@ -273,7 +278,23 @@ const analyzeArtworkContour = (source: string) =>
           ? bounds.topPercent +
             ((alphaWeightedY / totalAlpha) / Math.max(1, canvasHeight - 1)) * bounds.heightPercent
           : fallbackCenterYPercent;
-      const centerBlendRatio = 0.35;
+      const pixelMeanX = totalAlpha > 0 ? alphaWeightedX / totalAlpha : (canvasWidth - 1) / 2;
+      const pixelMeanY = totalAlpha > 0 ? alphaWeightedY / totalAlpha : (canvasHeight - 1) / 2;
+      const pixelVarianceX =
+        totalAlpha > 0
+          ? Math.max(0, alphaWeightedX2 / totalAlpha - pixelMeanX * pixelMeanX)
+          : 0;
+      const pixelVarianceY =
+        totalAlpha > 0
+          ? Math.max(0, alphaWeightedY2 / totalAlpha - pixelMeanY * pixelMeanY)
+          : 0;
+      const percentScaleX = bounds.widthPercent / Math.max(1, canvasWidth - 1);
+      const percentScaleY = bounds.heightPercent / Math.max(1, canvasHeight - 1);
+      const meanSquaredRadiusLocal =
+        ((pixelVarianceX * percentScaleX * percentScaleX) +
+          (pixelVarianceY * percentScaleY * percentScaleY)) /
+        10000;
+      const centerBlendRatio = 0.9;
       const centerOfMassXPercent =
         fallbackCenterXPercent * (1 - centerBlendRatio) + alphaCenterXPercent * centerBlendRatio;
       const centerOfMassYPercent =
@@ -297,6 +318,7 @@ const analyzeArtworkContour = (source: string) =>
           centerOfMassYPercent,
           firstOpaquePercent,
           lastOpaquePercent,
+          meanSquaredRadiusLocal,
           topOpaquePercent,
           topEdgeByPercent: Array.from({ length: 101 }, (_, percent) =>
             percent >= firstOpaquePercent && percent <= lastOpaquePercent ? bounds.topPercent : null,
@@ -311,6 +333,7 @@ const analyzeArtworkContour = (source: string) =>
         centerOfMassYPercent,
         firstOpaquePercent: validPercents[0],
         lastOpaquePercent: validPercents[validPercents.length - 1],
+        meanSquaredRadiusLocal,
         topOpaquePercent,
         topEdgeByPercent,
       });
@@ -386,6 +409,7 @@ const getPreviewPhysicsModel = (
   hardwareFrameHeight: number,
   hardwareBottomPx: number,
 ) => {
+  const balanceBlend = 0.22;
   const holeLocalX = (holePosition - 50) / 100;
   const holeLocalY = (50 - holeTopPercent) / 100;
   const hardwareBottomLocalY = hardwareBottomPx / Math.max(cardSize, 1);
@@ -408,13 +432,22 @@ const getPreviewPhysicsModel = (
   const combinedComLocalY =
     (artworkComLocalY * artworkMass + hardwareComLocalY * profile.hardwareMass) / combinedMass;
   const cardCenterLocalX = -holeLocalX;
-  const cardCenterLocalY = hardwareBottomLocalY + holeLocalY;
-  const pivotToComLocalX = cardCenterLocalX + combinedComLocalX;
-  const pivotToComLocalY = cardCenterLocalY + combinedComLocalY;
+  const cardCenterLocalY = -(hardwareBottomLocalY + holeLocalY);
+  const pivotToCardCenterLocalX = cardCenterLocalX;
+  const pivotToCardCenterLocalY = cardCenterLocalY;
+  const pivotToComLocalX = pivotToCardCenterLocalX + artworkComLocalX * balanceBlend;
+  const pivotToComLocalY = pivotToCardCenterLocalY + artworkComLocalY * balanceBlend;
   const equilibriumAngle = normalizeAngle(
-    Math.PI / 2 - Math.atan2(pivotToComLocalY, pivotToComLocalX),
+    -Math.PI / 2 - Math.atan2(pivotToComLocalY, pivotToComLocalX),
   );
-  const distance = Math.hypot(pivotToComLocalX, pivotToComLocalY);
+  const balanceDistance = Math.hypot(pivotToComLocalX, pivotToComLocalY);
+  const artworkSpread = artworkContour?.meanSquaredRadiusLocal ?? 0.03;
+  const hardwareDistanceSquared = hardwareComLocalX * hardwareComLocalX + hardwareComLocalY * hardwareComLocalY;
+  const inertia =
+    profile.inertiaBase +
+    artworkSpread * 2.4 +
+    balanceDistance * balanceDistance * 0.42 +
+    hardwareDistanceSquared * profile.hardwareMass * 0.16;
 
   return {
     combinedComLocalX,
@@ -422,7 +455,7 @@ const getPreviewPhysicsModel = (
     cardCenterLocalX,
     cardCenterLocalY,
     equilibriumAngle,
-    inertia: profile.inertiaBase + distance * 0.34,
+    inertia,
     pivotToComLocalX,
     pivotToComLocalY,
     profile,
@@ -513,13 +546,13 @@ function App() {
     ],
   );
   const renderedAngle = isDraggingHole ? 0 : previewAngle;
-  const previewRotation = `${(renderedAngle * 180) / Math.PI}deg`;
+  const previewRotation = `${(-renderedAngle * 180) / Math.PI}deg`;
   const holeRenderX = ((holePosition - 50) / 100) * previewCardSize;
   const holeRenderY = ((holeTopPercent - 50) / 100) * previewCardSize;
   const cardLeftPx =
     previewPhysicsModel.cardCenterLocalX * previewCardSize - previewCardSize / 2;
   const cardTopPx =
-    previewPhysicsModel.cardCenterLocalY * previewCardSize - previewCardSize / 2;
+    -previewPhysicsModel.cardCenterLocalY * previewCardSize - previewCardSize / 2;
   const previewHitAreaLeft = Math.min(cardLeftPx, -previewHardwareFrameWidth / 2) - 24;
   const previewHitAreaTop = Math.min(cardTopPx, 0) - 24;
   const previewHitAreaRight = Math.max(
@@ -673,12 +706,12 @@ function App() {
         const targetAngle = motion.isDragging
           ? motion.desiredAngle
           : previewPhysicsModel.equilibriumAngle;
-        const desiredDelta = normalizeAngle(targetAngle - motion.desiredAngle);
-        motion.desiredAngle = normalizeAngle(
-          motion.desiredAngle + desiredDelta * profile.desiredAngleFollow,
-        );
-        const angleError = normalizeAngle(motion.desiredAngle - motion.angle);
-        torque += angleError * profile.alignStiffness - motion.angularVelocity * profile.alignDamping;
+        const angleError = normalizeAngle(targetAngle - motion.angle);
+        const followStiffness = motion.isDragging
+          ? profile.dragFollowStiffness
+          : profile.alignStiffness;
+        const followDamping = motion.isDragging ? profile.dragDamping : profile.alignDamping;
+        torque += angleError * followStiffness - motion.angularVelocity * followDamping;
 
         motion.angularVelocity += (torque / previewPhysicsModel.inertia) * stepDt;
         motion.angularVelocity = clampValue(
@@ -689,12 +722,12 @@ function App() {
         motion.angularVelocity *= profile.angularDamping;
         motion.angle = normalizeAngle(motion.angle + motion.angularVelocity * stepDt);
 
-        const relativeTilt = normalizeAngle(motion.angle - motion.desiredAngle);
+        const relativeTilt = normalizeAngle(motion.angle - previewPhysicsModel.equilibriumAngle);
         if (relativeTilt > previewAngleLimit) {
-          motion.angle = motion.desiredAngle + previewAngleLimit;
+          motion.angle = previewPhysicsModel.equilibriumAngle + previewAngleLimit;
           motion.angularVelocity = Math.min(motion.angularVelocity, 0);
         } else if (relativeTilt < -previewAngleLimit) {
-          motion.angle = motion.desiredAngle - previewAngleLimit;
+          motion.angle = previewPhysicsModel.equilibriumAngle - previewAngleLimit;
           motion.angularVelocity = Math.max(motion.angularVelocity, 0);
         }
       }
@@ -833,7 +866,7 @@ function App() {
   };
 
   const getDragTargetAngle = (pointerWorldX: number) =>
-    clampValue(Math.atan(pointerWorldX * 1.35) * 0.82, -previewAngleLimit, previewAngleLimit);
+    clampValue(Math.atan(pointerWorldX * 1.7) * 0.98, -previewAngleLimit, previewAngleLimit);
 
   const handlePreviewPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (!isPreviewReady || isDraggingHole) {
@@ -854,11 +887,8 @@ function App() {
     motion.pointerId = event.pointerId;
     motion.lastDragAngle = getDragTargetAngle(pointerWorld.x);
     motion.lastDragTimestamp = performance.now();
-    motion.angularVelocity = 0;
-    motion.angle = motion.lastDragAngle;
     motion.desiredAngle = motion.lastDragAngle;
     motion.lastTimestamp = motion.lastDragTimestamp;
-    setPreviewAngle(motion.lastDragAngle);
   };
 
   const handlePreviewPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
@@ -876,16 +906,14 @@ function App() {
     const now = performance.now();
     const dt = Math.max(now - motion.lastDragTimestamp, 8) / 1000;
     const angleDelta = normalizeAngle(nextAngle - motion.lastDragAngle);
-    motion.angularVelocity = clampValue(
-      angleDelta / dt,
+    motion.angularVelocity += clampValue(
+      (angleDelta / dt) * 0.12,
       -previewDragVelocityLimit,
       previewDragVelocityLimit,
     );
     motion.lastDragAngle = nextAngle;
     motion.lastDragTimestamp = now;
-    motion.angle = nextAngle;
     motion.desiredAngle = nextAngle;
-    setPreviewAngle(nextAngle);
   };
 
   function finishPreviewInteraction(pointerId?: number) {
@@ -904,6 +932,7 @@ function App() {
 
     motion.isDragging = false;
     motion.pointerId = null;
+    motion.angularVelocity = clampValue(motion.angularVelocity * 0.7, -1.1, 1.1);
     motion.lastTimestamp = performance.now();
     motion.lastDragTimestamp = 0;
     motion.desiredAngle = previewPhysicsModel.equilibriumAngle;
