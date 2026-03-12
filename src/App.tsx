@@ -79,65 +79,66 @@ const holePositionMin = 18;
 const holePositionMax = 82;
 const defaultHolePosition = 50;
 const contourAlphaThreshold = 16;
-const previewAngleLimit = Math.PI * 0.32;
-const previewDragVelocityLimit = 1.4;
+const holeDragSensitivity = 0.42;
+const previewAngleLimit = Math.PI * 0.58;
+const previewDragVelocityLimit = 4.8;
 
 const partMotionProfiles: Record<
   PartId,
   PreviewPhysicsProfile
 > = {
   nasukan: {
-    alignDamping: 4.9,
-    alignStiffness: 6.3,
-    angularDamping: 0.994,
-    combinedComTorqueScale: 0.39,
+    alignDamping: 2.3,
+    alignStiffness: 5.5,
+    angularDamping: 0.998,
+    combinedComTorqueScale: 0.46,
     desiredAngleFollow: 0.16,
-    dragDamping: 8.6,
-    dragFollowStiffness: 13.5,
+    dragDamping: 7.2,
+    dragFollowStiffness: 16.5,
     hardwareMass: 0.22,
     holeConstraintDamping: 14,
     holeConstraintStiffness: 92,
     inertiaBase: 0.32,
     linearDamping: 0.988,
-    maxAngularSpeed: 4.3,
+    maxAngularSpeed: 6.8,
     maxSpeed: 2.7,
     positionCorrection: 0.02,
     totalMass: 1.98,
     velocityCorrection: 0.06,
   },
   "ball-chain": {
-    alignDamping: 4.7,
-    alignStiffness: 5.9,
-    angularDamping: 0.994,
-    combinedComTorqueScale: 0.37,
+    alignDamping: 2.2,
+    alignStiffness: 5.2,
+    angularDamping: 0.998,
+    combinedComTorqueScale: 0.43,
     desiredAngleFollow: 0.16,
-    dragDamping: 8.2,
-    dragFollowStiffness: 12.8,
+    dragDamping: 6.9,
+    dragFollowStiffness: 15.8,
     hardwareMass: 0.14,
     holeConstraintDamping: 13,
     holeConstraintStiffness: 88,
     inertiaBase: 0.3,
     linearDamping: 0.989,
-    maxAngularSpeed: 4.35,
+    maxAngularSpeed: 6.9,
     maxSpeed: 2.9,
     positionCorrection: 0.018,
     totalMass: 1.66,
     velocityCorrection: 0.055,
   },
   strap: {
-    alignDamping: 4.6,
-    alignStiffness: 5.7,
-    angularDamping: 0.994,
-    combinedComTorqueScale: 0.36,
+    alignDamping: 2.1,
+    alignStiffness: 5,
+    angularDamping: 0.998,
+    combinedComTorqueScale: 0.42,
     desiredAngleFollow: 0.16,
-    dragDamping: 8.1,
-    dragFollowStiffness: 12.6,
+    dragDamping: 6.8,
+    dragFollowStiffness: 15.6,
     hardwareMass: 0.12,
     holeConstraintDamping: 13,
     holeConstraintStiffness: 86,
     inertiaBase: 0.29,
     linearDamping: 0.989,
-    maxAngularSpeed: 4.35,
+    maxAngularSpeed: 6.9,
     maxSpeed: 2.8,
     positionCorrection: 0.018,
     totalMass: 1.58,
@@ -481,6 +482,11 @@ function App() {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const previewBodyRef = useRef<HTMLDivElement | null>(null);
   const previewInteractionRef = useRef<HTMLDivElement | null>(null);
+  const holeDragRef = useRef({
+    cardWidth: 1,
+    startClientX: 0,
+    startHolePosition: defaultHolePosition,
+  });
   const previewMotionRef = useRef({
     angle: 0,
     angularVelocity: 0,
@@ -653,12 +659,12 @@ function App() {
     if (!isDraggingHole) return;
 
     const handlePointerMove = (event: PointerEvent) => {
-      const card = cardRef.current;
-      if (!card) return;
-
-      const rect = card.getBoundingClientRect();
-      const ratio = ((event.clientX - rect.left) / rect.width) * 100;
-      setHolePosition(resolveHolePosition(ratio, artworkContour));
+      const drag = holeDragRef.current;
+      const deltaPercent =
+        ((event.clientX - drag.startClientX) / Math.max(drag.cardWidth, 1)) *
+        100 *
+        holeDragSensitivity;
+      setHolePosition(resolveHolePosition(drag.startHolePosition - deltaPercent, artworkContour));
     };
 
     const handlePointerUp = () => {
@@ -830,6 +836,11 @@ function App() {
     if (card) {
       const rect = card.getBoundingClientRect();
       const ratio = ((event.clientX - rect.left) / rect.width) * 100;
+      holeDragRef.current = {
+        cardWidth: rect.width,
+        startClientX: event.clientX,
+        startHolePosition: resolveHolePosition(ratio, artworkContour),
+      };
       setHolePosition(resolveHolePosition(ratio, artworkContour));
     }
 
@@ -907,7 +918,7 @@ function App() {
     const dt = Math.max(now - motion.lastDragTimestamp, 8) / 1000;
     const angleDelta = normalizeAngle(nextAngle - motion.lastDragAngle);
     motion.angularVelocity += clampValue(
-      (angleDelta / dt) * 0.12,
+      (angleDelta / dt) * 0.2,
       -previewDragVelocityLimit,
       previewDragVelocityLimit,
     );
@@ -932,7 +943,7 @@ function App() {
 
     motion.isDragging = false;
     motion.pointerId = null;
-    motion.angularVelocity = clampValue(motion.angularVelocity * 0.7, -1.1, 1.1);
+    motion.angularVelocity = clampValue(motion.angularVelocity * 1.35, -4.4, 4.4);
     motion.lastTimestamp = performance.now();
     motion.lastDragTimestamp = 0;
     motion.desiredAngle = previewPhysicsModel.equilibriumAngle;
