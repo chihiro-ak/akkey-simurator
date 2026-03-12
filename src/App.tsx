@@ -5,7 +5,6 @@ import nasukanImage from "./assets/parts/nasukan.png";
 import strapImage from "./assets/parts/strap.png";
 
 type PartId = "nasukan" | "ball-chain" | "strap";
-type PreviewMode = "edit" | "preview";
 type UploadStatus = "empty" | "loading" | "ready" | "error";
 
 type PartOption = {
@@ -21,13 +20,45 @@ type UploadedArtwork = {
 };
 
 type ArtworkContour = {
+  centerOfMassXPercent: number;
+  centerOfMassYPercent: number;
   firstOpaquePercent: number;
   lastOpaquePercent: number;
+  topOpaquePercent: number;
+  bottomOpaquePercent: number;
   topEdgeByPercent: Array<number | null>;
 };
 
-type ImageOpaqueBounds = {
-  bottomOpaquePercent: number;
+type PreviewPhysicsProfile = {
+  alignDamping: number;
+  alignStiffness: number;
+  angularDamping: number;
+  combinedComTorqueScale: number;
+  desiredAngleFollow: number;
+  dragDamping: number;
+  dragFollowStiffness: number;
+  hardwareMass: number;
+  holeConstraintDamping: number;
+  holeConstraintStiffness: number;
+  inertiaBase: number;
+  linearDamping: number;
+  maxAngularSpeed: number;
+  maxSpeed: number;
+  positionCorrection: number;
+  totalMass: number;
+  velocityCorrection: number;
+};
+
+type PreviewPhysicsModel = {
+  combinedComLocalX: number;
+  combinedComLocalY: number;
+  cardCenterLocalX: number;
+  cardCenterLocalY: number;
+  equilibriumAngle: number;
+  inertia: number;
+  pivotToComLocalX: number;
+  pivotToComLocalY: number;
+  profile: PreviewPhysicsProfile;
 };
 
 const parts: PartOption[] = [
@@ -47,6 +78,71 @@ const holePositionMin = 18;
 const holePositionMax = 82;
 const defaultHolePosition = 50;
 const contourAlphaThreshold = 16;
+const previewAngleLimit = Math.PI * 0.28;
+const previewDragVelocityLimit = 2.4;
+
+const partMotionProfiles: Record<
+  PartId,
+  PreviewPhysicsProfile
+> = {
+  nasukan: {
+    alignDamping: 8.8,
+    alignStiffness: 6.4,
+    angularDamping: 0.986,
+    combinedComTorqueScale: 0.32,
+    desiredAngleFollow: 0.24,
+    dragDamping: 10.4,
+    dragFollowStiffness: 30,
+    hardwareMass: 0.78,
+    holeConstraintDamping: 14,
+    holeConstraintStiffness: 92,
+    inertiaBase: 0.32,
+    linearDamping: 0.988,
+    maxAngularSpeed: 3.1,
+    maxSpeed: 2.7,
+    positionCorrection: 0.02,
+    totalMass: 1.98,
+    velocityCorrection: 0.06,
+  },
+  "ball-chain": {
+    alignDamping: 8.2,
+    alignStiffness: 5.9,
+    angularDamping: 0.9865,
+    combinedComTorqueScale: 0.29,
+    desiredAngleFollow: 0.22,
+    dragDamping: 9.6,
+    dragFollowStiffness: 28,
+    hardwareMass: 0.46,
+    holeConstraintDamping: 13,
+    holeConstraintStiffness: 88,
+    inertiaBase: 0.3,
+    linearDamping: 0.989,
+    maxAngularSpeed: 3.2,
+    maxSpeed: 2.9,
+    positionCorrection: 0.018,
+    totalMass: 1.66,
+    velocityCorrection: 0.055,
+  },
+  strap: {
+    alignDamping: 8,
+    alignStiffness: 5.8,
+    angularDamping: 0.9868,
+    combinedComTorqueScale: 0.28,
+    desiredAngleFollow: 0.22,
+    dragDamping: 9.8,
+    dragFollowStiffness: 29,
+    hardwareMass: 0.38,
+    holeConstraintDamping: 13,
+    holeConstraintStiffness: 86,
+    inertiaBase: 0.29,
+    linearDamping: 0.989,
+    maxAngularSpeed: 3.2,
+    maxSpeed: 2.8,
+    positionCorrection: 0.018,
+    totalMass: 1.58,
+    velocityCorrection: 0.055,
+  },
+};
 
 const isSupportedImageFile = (file: File) => {
   const lowerName = file.name.toLowerCase();
@@ -58,6 +154,20 @@ const isSupportedImageFile = (file: File) => {
 
 const clampPercent = (value: number, min: number, max: number) =>
   Math.min(max, Math.max(min, value));
+
+const clampValue = (value: number, min: number, max: number) =>
+  Math.min(max, Math.max(min, value));
+
+const normalizeAngle = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle));
+
+const rotatePoint = (x: number, y: number, angle: number) => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return {
+    x: x * cos - y * sin,
+    y: x * sin + y * cos,
+  };
+};
 
 const getContainBounds = (width: number, height: number) => {
   const aspectRatio = width / height;
@@ -104,6 +214,11 @@ const analyzeArtworkContour = (source: string) =>
 
       const { data } = context.getImageData(0, 0, canvasWidth, canvasHeight);
       const bounds = getContainBounds(image.naturalWidth, image.naturalHeight);
+      let alphaWeightedX = 0;
+      let alphaWeightedY = 0;
+      let totalAlpha = 0;
+      let topOpaqueRow = canvasHeight - 1;
+      let bottomOpaqueRow = 0;
       const topEdgeByPercent: Array<number | null> = Array.from({ length: 101 }, (_, percent) => {
         if (percent < bounds.leftPercent || percent > bounds.leftPercent + bounds.widthPercent) {
           return null;
@@ -131,12 +246,58 @@ const analyzeArtworkContour = (source: string) =>
         value === null ? [] : percent,
       );
 
+      for (let y = 0; y < canvasHeight; y += 1) {
+        for (let x = 0; x < canvasWidth; x += 1) {
+          const alpha = data[(y * canvasWidth + x) * 4 + 3];
+          if (alpha <= contourAlphaThreshold) {
+            continue;
+          }
+
+          alphaWeightedX += x * alpha;
+          alphaWeightedY += y * alpha;
+          totalAlpha += alpha;
+          topOpaqueRow = Math.min(topOpaqueRow, y);
+          bottomOpaqueRow = Math.max(bottomOpaqueRow, y);
+        }
+      }
+
+      const fallbackCenterXPercent = bounds.leftPercent + bounds.widthPercent / 2;
+      const fallbackCenterYPercent = bounds.topPercent + bounds.heightPercent / 2;
+      const alphaCenterXPercent =
+        totalAlpha > 0
+          ? bounds.leftPercent +
+            ((alphaWeightedX / totalAlpha) / Math.max(1, canvasWidth - 1)) * bounds.widthPercent
+          : fallbackCenterXPercent;
+      const alphaCenterYPercent =
+        totalAlpha > 0
+          ? bounds.topPercent +
+            ((alphaWeightedY / totalAlpha) / Math.max(1, canvasHeight - 1)) * bounds.heightPercent
+          : fallbackCenterYPercent;
+      const centerBlendRatio = 0.35;
+      const centerOfMassXPercent =
+        fallbackCenterXPercent * (1 - centerBlendRatio) + alphaCenterXPercent * centerBlendRatio;
+      const centerOfMassYPercent =
+        fallbackCenterYPercent * (1 - centerBlendRatio) + alphaCenterYPercent * centerBlendRatio;
+      const topOpaquePercent =
+        totalAlpha > 0
+          ? bounds.topPercent + (topOpaqueRow / Math.max(1, canvasHeight - 1)) * bounds.heightPercent
+          : bounds.topPercent;
+      const bottomOpaquePercent =
+        totalAlpha > 0
+          ? bounds.topPercent +
+            (bottomOpaqueRow / Math.max(1, canvasHeight - 1)) * bounds.heightPercent
+          : bounds.topPercent + bounds.heightPercent;
+
       if (validPercents.length === 0) {
         const firstOpaquePercent = Math.round(bounds.leftPercent);
         const lastOpaquePercent = Math.round(bounds.leftPercent + bounds.widthPercent);
         resolve({
+          bottomOpaquePercent,
+          centerOfMassXPercent,
+          centerOfMassYPercent,
           firstOpaquePercent,
           lastOpaquePercent,
+          topOpaquePercent,
           topEdgeByPercent: Array.from({ length: 101 }, (_, percent) =>
             percent >= firstOpaquePercent && percent <= lastOpaquePercent ? bounds.topPercent : null,
           ),
@@ -145,67 +306,18 @@ const analyzeArtworkContour = (source: string) =>
       }
 
       resolve({
+        bottomOpaquePercent,
+        centerOfMassXPercent,
+        centerOfMassYPercent,
         firstOpaquePercent: validPercents[0],
         lastOpaquePercent: validPercents[validPercents.length - 1],
+        topOpaquePercent,
         topEdgeByPercent,
       });
     };
 
     image.onerror = () => {
       reject(new Error("Failed to analyze uploaded artwork"));
-    };
-
-    image.src = source;
-  });
-
-const analyzeImageOpaqueBounds = (source: string) =>
-  new Promise<ImageOpaqueBounds>((resolve, reject) => {
-    const image = new Image();
-
-    image.onload = () => {
-      const scale = Math.min(1, 512 / Math.max(image.naturalWidth, image.naturalHeight));
-      const canvasWidth = Math.max(1, Math.round(image.naturalWidth * scale));
-      const canvasHeight = Math.max(1, Math.round(image.naturalHeight * scale));
-      const canvas = document.createElement("canvas");
-      canvas.width = canvasWidth;
-      canvas.height = canvasHeight;
-
-      const context = canvas.getContext("2d", { willReadFrequently: true });
-      if (!context) {
-        reject(new Error("Canvas context is not available"));
-        return;
-      }
-
-      context.clearRect(0, 0, canvasWidth, canvasHeight);
-      context.drawImage(image, 0, 0, canvasWidth, canvasHeight);
-
-      const { data } = context.getImageData(0, 0, canvasWidth, canvasHeight);
-      let bottomOpaqueRow = canvasHeight - 1;
-
-      for (let y = canvasHeight - 1; y >= 0; y -= 1) {
-        let foundOpaque = false;
-
-        for (let x = 0; x < canvasWidth; x += 1) {
-          const alpha = data[(y * canvasWidth + x) * 4 + 3];
-          if (alpha > contourAlphaThreshold) {
-            bottomOpaqueRow = y;
-            foundOpaque = true;
-            break;
-          }
-        }
-
-        if (foundOpaque) {
-          break;
-        }
-      }
-
-      resolve({
-        bottomOpaquePercent: canvasHeight === 1 ? 100 : (bottomOpaqueRow / (canvasHeight - 1)) * 100,
-      });
-    };
-
-    image.onerror = () => {
-      reject(new Error("Failed to analyze part image"));
     };
 
     image.src = source;
@@ -263,19 +375,89 @@ const getHoleTopPercent = (holePosition: number, contour: ArtworkContour | null)
   return 0;
 };
 
+const getPreviewPhysicsModel = (
+  partId: PartId,
+  holePosition: number,
+  holeTopPercent: number,
+  artworkContour: ArtworkContour | null,
+  partContour: ArtworkContour | null,
+  cardSize: number,
+  hardwareFrameWidth: number,
+  hardwareFrameHeight: number,
+  hardwareBottomPx: number,
+) => {
+  const holeLocalX = (holePosition - 50) / 100;
+  const holeLocalY = (50 - holeTopPercent) / 100;
+  const hardwareBottomLocalY = hardwareBottomPx / Math.max(cardSize, 1);
+  const artworkComLocalX = ((artworkContour?.centerOfMassXPercent ?? 50) - 50) / 100;
+  const artworkComLocalY = (50 - (artworkContour?.centerOfMassYPercent ?? 58)) / 100;
+  const hardwareComXPercentInCard =
+    holePosition +
+    (((partContour?.centerOfMassXPercent ?? 50) - 50) / 100) *
+      ((hardwareFrameWidth / Math.max(cardSize, 1)) * 100);
+  const hardwareComYPx =
+    -hardwareBottomPx + ((partContour?.centerOfMassYPercent ?? 62) / 100) * hardwareFrameHeight;
+  const hardwareComYPercentInCard = (hardwareComYPx / Math.max(cardSize, 1)) * 100;
+  const hardwareComLocalX = (hardwareComXPercentInCard - 50) / 100;
+  const hardwareComLocalY = (50 - hardwareComYPercentInCard) / 100;
+  const profile = partMotionProfiles[partId];
+  const artworkMass = Math.max(profile.totalMass - profile.hardwareMass, 0.8);
+  const combinedMass = artworkMass + profile.hardwareMass;
+  const combinedComLocalX =
+    (artworkComLocalX * artworkMass + hardwareComLocalX * profile.hardwareMass) / combinedMass;
+  const combinedComLocalY =
+    (artworkComLocalY * artworkMass + hardwareComLocalY * profile.hardwareMass) / combinedMass;
+  const cardCenterLocalX = -holeLocalX;
+  const cardCenterLocalY = hardwareBottomLocalY + holeLocalY;
+  const pivotToComLocalX = cardCenterLocalX + combinedComLocalX;
+  const pivotToComLocalY = cardCenterLocalY + combinedComLocalY;
+  const equilibriumAngle = normalizeAngle(
+    Math.PI / 2 - Math.atan2(pivotToComLocalY, pivotToComLocalX),
+  );
+  const distance = Math.hypot(pivotToComLocalX, pivotToComLocalY);
+
+  return {
+    combinedComLocalX,
+    combinedComLocalY,
+    cardCenterLocalX,
+    cardCenterLocalY,
+    equilibriumAngle,
+    inertia: profile.inertiaBase + distance * 0.34,
+    pivotToComLocalX,
+    pivotToComLocalY,
+    profile,
+  };
+};
+
 function App() {
   const [selectedPart, setSelectedPart] = useState<PartId>("nasukan");
-  const [previewMode, setPreviewMode] = useState<PreviewMode>("edit");
   const [uploadStatus, setUploadStatus] = useState<UploadStatus>("empty");
   const [uploadedArtwork, setUploadedArtwork] = useState<UploadedArtwork | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [imageAvailability, setImageAvailability] = useState(initialImageAvailability);
   const [holePosition, setHolePosition] = useState(defaultHolePosition);
   const [artworkContour, setArtworkContour] = useState<ArtworkContour | null>(null);
+  const [partContour, setPartContour] = useState<ArtworkContour | null>(null);
   const [partBottomOpaquePercent, setPartBottomOpaquePercent] = useState(100);
   const [isDraggingHole, setIsDraggingHole] = useState(false);
+  const [previewAngle, setPreviewAngle] = useState(0);
+  const [viewportWidth, setViewportWidth] = useState(
+    typeof window === "undefined" ? 1024 : window.innerWidth,
+  );
 
   const cardRef = useRef<HTMLDivElement | null>(null);
+  const previewBodyRef = useRef<HTMLDivElement | null>(null);
+  const previewInteractionRef = useRef<HTMLDivElement | null>(null);
+  const previewMotionRef = useRef({
+    angle: 0,
+    angularVelocity: 0,
+    desiredAngle: 0,
+    lastDragAngle: 0,
+    lastDragTimestamp: 0,
+    isDragging: false,
+    lastTimestamp: null as number | null,
+    pointerId: null as number | null,
+  });
 
   const activePart = useMemo(
     () => parts.find((part) => part.id === selectedPart) ?? parts[0],
@@ -284,17 +466,105 @@ function App() {
   const hasUploadedArtwork = uploadedArtwork !== null;
   const isPreviewReady = hasUploadedArtwork && uploadStatus !== "loading";
   const isPartImageAvailable = imageAvailability[activePart.id];
-  const uploadCtaTitle = hasUploadedArtwork
-    ? "別の画像に差し替える"
-    : "タップして画像を選択";
-  const uploadCtaDescription = hasUploadedArtwork
-    ? "新しい画像を選ぶと、今のプレビューを差し替えます。"
-    : "";
+  const uploadCtaTitle = "タップして画像を選ぶ";
   const holeTopPercent = getHoleTopPercent(holePosition, artworkContour);
+  const previewHardwareFrameHeight =
+    viewportWidth >= 1200 ? 128 : viewportWidth >= 768 ? 116 : viewportWidth <= 420 ? 84 : 96;
+  const previewHardwareFrameWidth =
+    viewportWidth >= 1200
+      ? Math.min(viewportWidth * 0.16, 240)
+      : viewportWidth >= 768
+        ? Math.min(viewportWidth * 0.24, 220)
+        : viewportWidth <= 420
+          ? Math.min(viewportWidth * 0.52, 156)
+          : Math.min(viewportWidth * 0.48, 190);
+  const previewCardSize =
+    viewportWidth >= 1200
+      ? clampValue(viewportWidth * 0.36, 380, 560)
+      : viewportWidth >= 768
+        ? Math.min(viewportWidth * 0.34, 320)
+        : Math.min(Math.max(viewportWidth - 112, 188), 220);
+  const previewHardwareBottomPx = (previewHardwareFrameHeight * partBottomOpaquePercent) / 100;
+  const previewAnchorTopPx =
+    viewportWidth >= 1200 ? 82 : viewportWidth >= 768 ? 72 : viewportWidth <= 420 ? 52 : 60;
+  const previewPhysicsModel = useMemo(
+    () =>
+      getPreviewPhysicsModel(
+        activePart.id,
+        holePosition,
+        holeTopPercent,
+        artworkContour,
+        partContour,
+        previewCardSize,
+        previewHardwareFrameWidth,
+        previewHardwareFrameHeight,
+        previewHardwareBottomPx,
+      ),
+    [
+      activePart.id,
+      artworkContour,
+      holePosition,
+      holeTopPercent,
+      partContour,
+      previewCardSize,
+      previewHardwareBottomPx,
+      previewHardwareFrameHeight,
+      previewHardwareFrameWidth,
+    ],
+  );
+  const renderedAngle = isDraggingHole ? 0 : previewAngle;
+  const previewRotation = `${(renderedAngle * 180) / Math.PI}deg`;
+  const holeRenderX = ((holePosition - 50) / 100) * previewCardSize;
+  const holeRenderY = ((holeTopPercent - 50) / 100) * previewCardSize;
+  const cardLeftPx =
+    previewPhysicsModel.cardCenterLocalX * previewCardSize - previewCardSize / 2;
+  const cardTopPx =
+    previewPhysicsModel.cardCenterLocalY * previewCardSize - previewCardSize / 2;
+  const previewHitAreaLeft = Math.min(cardLeftPx, -previewHardwareFrameWidth / 2) - 24;
+  const previewHitAreaTop = Math.min(cardTopPx, 0) - 24;
+  const previewHitAreaRight = Math.max(
+    cardLeftPx + previewCardSize,
+    previewHardwareFrameWidth / 2,
+  ) + 24;
+  const previewHitAreaBottom = Math.max(cardTopPx + previewCardSize, previewHardwareFrameHeight) + 24;
+  const holeInCardX = previewCardSize / 2 + holeRenderX;
+  const holeInCardY = previewCardSize / 2 + holeRenderY;
+  const artworkBoundsCenterX = artworkContour
+    ? (artworkContour.firstOpaquePercent + artworkContour.lastOpaquePercent) / 2
+    : 50;
+  const artworkBoundsCenterY = artworkContour
+    ? (artworkContour.topOpaquePercent + artworkContour.bottomOpaquePercent) / 2
+    : 50;
+  const uploadBadgeImageTransform = artworkContour
+    ? `translate(${(50 - artworkBoundsCenterX) * 2.1}%, ${(50 - artworkBoundsCenterY) * 4}%)`
+    : undefined;
 
   useEffect(() => {
-    if (isPreviewReady) return;
-    setPreviewMode("edit");
+    const handleResize = () => {
+      setViewportWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isPreviewReady) {
+      return;
+    }
+
+    const motion = previewMotionRef.current;
+    motion.angle = 0;
+    motion.angularVelocity = 0;
+    motion.desiredAngle = 0;
+    motion.lastDragAngle = 0;
+    motion.lastDragTimestamp = 0;
+    motion.isDragging = false;
+    motion.lastTimestamp = null;
+    motion.pointerId = null;
+    setPreviewAngle(0);
   }, [isPreviewReady]);
 
   useEffect(() => {
@@ -323,18 +593,21 @@ function App() {
 
   useEffect(() => {
     if (!isPartImageAvailable) {
+      setPartContour(null);
       setPartBottomOpaquePercent(100);
       return;
     }
 
     let ignore = false;
-    analyzeImageOpaqueBounds(activePart.image)
-      .then((bounds) => {
+    analyzeArtworkContour(activePart.image)
+      .then((contour) => {
         if (ignore) return;
-        setPartBottomOpaquePercent(bounds.bottomOpaquePercent);
+        setPartContour(contour);
+        setPartBottomOpaquePercent(contour.bottomOpaquePercent);
       })
       .catch(() => {
         if (ignore) return;
+        setPartContour(null);
         setPartBottomOpaquePercent(100);
       });
 
@@ -367,6 +640,97 @@ function App() {
       window.removeEventListener("pointerup", handlePointerUp);
     };
   }, [artworkContour, isDraggingHole]);
+
+  useEffect(() => {
+    if (!isPreviewReady) {
+      return;
+    }
+
+    const motion = previewMotionRef.current;
+    motion.lastTimestamp = null;
+
+    let animationFrame = 0;
+
+    const tick = (timestamp: number) => {
+      const elapsed =
+        motion.lastTimestamp === null
+          ? 1 / 60
+          : clampValue((timestamp - motion.lastTimestamp) / 1000, 1 / 240, 1 / 24);
+      const fixedStep = 1 / 120;
+      const subSteps = Math.max(1, Math.ceil(elapsed / fixedStep));
+      const stepDt = elapsed / subSteps;
+
+      for (let step = 0; step < subSteps; step += 1) {
+        const profile = previewPhysicsModel.profile;
+        const pivotToComOffset = rotatePoint(
+          previewPhysicsModel.pivotToComLocalX,
+          previewPhysicsModel.pivotToComLocalY,
+          motion.angle,
+        );
+        let torque = 0;
+        torque += pivotToComOffset.x * -9.81 * profile.totalMass * profile.combinedComTorqueScale;
+
+        const targetAngle = motion.isDragging
+          ? motion.desiredAngle
+          : previewPhysicsModel.equilibriumAngle;
+        const desiredDelta = normalizeAngle(targetAngle - motion.desiredAngle);
+        motion.desiredAngle = normalizeAngle(
+          motion.desiredAngle + desiredDelta * profile.desiredAngleFollow,
+        );
+        const angleError = normalizeAngle(motion.desiredAngle - motion.angle);
+        torque += angleError * profile.alignStiffness - motion.angularVelocity * profile.alignDamping;
+
+        motion.angularVelocity += (torque / previewPhysicsModel.inertia) * stepDt;
+        motion.angularVelocity = clampValue(
+          motion.angularVelocity,
+          -profile.maxAngularSpeed,
+          profile.maxAngularSpeed,
+        );
+        motion.angularVelocity *= profile.angularDamping;
+        motion.angle = normalizeAngle(motion.angle + motion.angularVelocity * stepDt);
+
+        const relativeTilt = normalizeAngle(motion.angle - motion.desiredAngle);
+        if (relativeTilt > previewAngleLimit) {
+          motion.angle = motion.desiredAngle + previewAngleLimit;
+          motion.angularVelocity = Math.min(motion.angularVelocity, 0);
+        } else if (relativeTilt < -previewAngleLimit) {
+          motion.angle = motion.desiredAngle - previewAngleLimit;
+          motion.angularVelocity = Math.max(motion.angularVelocity, 0);
+        }
+      }
+
+      setPreviewAngle(motion.angle);
+      motion.lastTimestamp = timestamp;
+      animationFrame = window.requestAnimationFrame(tick);
+    };
+
+    animationFrame = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.cancelAnimationFrame(animationFrame);
+    };
+  }, [isPreviewReady, previewPhysicsModel]);
+
+  useEffect(() => {
+    if (!isPreviewReady || isDraggingHole) {
+      return;
+    }
+
+    const motion = previewMotionRef.current;
+    if (motion.isDragging) {
+      return;
+    }
+
+    motion.angle = previewPhysicsModel.equilibriumAngle;
+    motion.angularVelocity = 0;
+    motion.desiredAngle = previewPhysicsModel.equilibriumAngle;
+    motion.lastTimestamp = null;
+    setPreviewAngle(previewPhysicsModel.equilibriumAngle);
+  }, [
+    isDraggingHole,
+    isPreviewReady,
+    previewPhysicsModel.equilibriumAngle,
+  ]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -425,6 +789,9 @@ function App() {
 
   const handleHolePointerDown = (event: React.PointerEvent<HTMLButtonElement | HTMLDivElement>) => {
     event.preventDefault();
+    event.stopPropagation();
+
+    finishPreviewInteraction();
 
     const card = cardRef.current;
     if (card) {
@@ -439,6 +806,108 @@ function App() {
   const handleHoleReset = () => {
     setHolePosition(resolveHolePosition(defaultHolePosition, artworkContour));
   };
+
+  const getPreviewAnchor = () => {
+    const interaction = previewInteractionRef.current;
+    if (!interaction) {
+      return null;
+    }
+
+    const rect = interaction.getBoundingClientRect();
+    return {
+      x: rect.left + rect.width / 2,
+      y: rect.top + previewAnchorTopPx,
+    };
+  };
+
+  const getPointerWorldPosition = (clientX: number, clientY: number) => {
+    const anchor = getPreviewAnchor();
+    if (!anchor) {
+      return null;
+    }
+
+    return {
+      x: (clientX - anchor.x) / Math.max(previewCardSize, 1),
+      y: (anchor.y - clientY) / Math.max(previewCardSize, 1),
+    };
+  };
+
+  const getDragTargetAngle = (pointerWorldX: number) =>
+    clampValue(Math.atan(pointerWorldX * 1.35) * 0.82, -previewAngleLimit, previewAngleLimit);
+
+  const handlePreviewPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (!isPreviewReady || isDraggingHole) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const motion = previewMotionRef.current;
+    const pointerWorld = getPointerWorldPosition(event.clientX, event.clientY);
+    if (!pointerWorld) {
+      return;
+    }
+
+    event.currentTarget.setPointerCapture(event.pointerId);
+
+    motion.isDragging = true;
+    motion.pointerId = event.pointerId;
+    motion.lastDragAngle = getDragTargetAngle(pointerWorld.x);
+    motion.lastDragTimestamp = performance.now();
+    motion.angularVelocity = 0;
+    motion.angle = motion.lastDragAngle;
+    motion.desiredAngle = motion.lastDragAngle;
+    motion.lastTimestamp = motion.lastDragTimestamp;
+    setPreviewAngle(motion.lastDragAngle);
+  };
+
+  const handlePreviewPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const motion = previewMotionRef.current;
+    if (!motion.isDragging || motion.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const nextTarget = getPointerWorldPosition(event.clientX, event.clientY);
+    if (!nextTarget) {
+      return;
+    }
+
+    const nextAngle = getDragTargetAngle(nextTarget.x);
+    const now = performance.now();
+    const dt = Math.max(now - motion.lastDragTimestamp, 8) / 1000;
+    const angleDelta = normalizeAngle(nextAngle - motion.lastDragAngle);
+    motion.angularVelocity = clampValue(
+      angleDelta / dt,
+      -previewDragVelocityLimit,
+      previewDragVelocityLimit,
+    );
+    motion.lastDragAngle = nextAngle;
+    motion.lastDragTimestamp = now;
+    motion.angle = nextAngle;
+    motion.desiredAngle = nextAngle;
+    setPreviewAngle(nextAngle);
+  };
+
+  function finishPreviewInteraction(pointerId?: number) {
+    const motion = previewMotionRef.current;
+    if (pointerId !== undefined && motion.pointerId !== pointerId) {
+      return;
+    }
+
+    if (previewBodyRef.current && pointerId !== undefined) {
+      try {
+        previewBodyRef.current.releasePointerCapture(pointerId);
+      } catch {
+        // Ignore when capture is already released.
+      }
+    }
+
+    motion.isDragging = false;
+    motion.pointerId = null;
+    motion.lastTimestamp = performance.now();
+    motion.lastDragTimestamp = 0;
+    motion.desiredAngle = previewPhysicsModel.equilibriumAngle;
+  }
 
   return (
     <main className="app-shell">
@@ -456,44 +925,42 @@ function App() {
                 <h2>画像アップロード</h2>
               </div>
 
-              <label className="upload-dropzone">
+              <label className={`upload-dropzone ${uploadedArtwork ? "is-filled" : ""}`}>
                 <input
                   accept="image/png,image/jpeg,image/webp"
+                  aria-label="画像を選択"
                   className="sr-only"
                   onChange={handleFileChange}
                   type="file"
                 />
                 <div className="upload-badge" aria-hidden="true">
-                  🏞️
+                  {uploadedArtwork ? (
+                    <img
+                      alt=""
+                      className="upload-badge-image"
+                      src={uploadedArtwork.previewUrl}
+                      style={uploadBadgeImageTransform ? { transform: uploadBadgeImageTransform } : undefined}
+                    />
+                  ) : (
+                    "🖼️"
+                  )}
                 </div>
-                <strong>{uploadCtaTitle}</strong>
-                <span>{uploadCtaDescription}</span>
+                {!uploadedArtwork ? <strong>{uploadCtaTitle}</strong> : null}
               </label>
 
-              <div className={`upload-status-card is-${uploadStatus}`} aria-live="polite">
-                {uploadStatus === "empty" ? (
-                  <>
-                    <strong>画像を選択してください</strong>
-                  </>
-                ) : null}
-                {uploadStatus === "loading" ? (
-                  <>
+              {uploadStatus === "loading" || uploadStatus === "error" ? (
+                <div className={`upload-status-card is-${uploadStatus}`} aria-live="polite">
+                  {uploadStatus === "loading" ? (
                     <strong>プレビューを作成中です</strong>
-                  </>
-                ) : null}
-                {uploadStatus === "ready" && uploadedArtwork ? (
-                  <>
-                    <strong>画像を読み込みました</strong>
-                    <span>{uploadedArtwork.fileName}</span>
-                  </>
-                ) : null}
-                {uploadStatus === "error" ? (
-                  <>
-                    <strong>画像を読み込めませんでした</strong>
-                    <span>{uploadError}</span>
-                  </>
-                ) : null}
-              </div>
+                  ) : null}
+                  {uploadStatus === "error" ? (
+                    <>
+                      <strong>画像を読み込めませんでした</strong>
+                      <span>{uploadError}</span>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
             </section>
 
             <section className="panel">
@@ -541,106 +1008,121 @@ function App() {
               <h2>プレビュー</h2>
             </div>
 
-            <div className="mode-switch" role="tablist" aria-label="表示モード">
-              <button
-                aria-selected={previewMode === "edit"}
-                className={previewMode === "edit" ? "is-selected" : ""}
-                onClick={() => setPreviewMode("edit")}
-                role="tab"
-                type="button"
+            <div className={`preview-stage ${isPreviewReady ? "is-clean" : ""}`}>
+              {isPreviewReady ? (
+                <p className="preview-hint">穴ハンドルで位置調整、作品をドラッグして揺れを確認</p>
+              ) : null}
+              <div
+                ref={previewInteractionRef}
+                className={`preview-object ${isPreviewReady ? "is-interactive" : ""}`}
+                onPointerCancel={(event) => finishPreviewInteraction(event.pointerId)}
+                onPointerMove={handlePreviewPointerMove}
+                onPointerUp={(event) => finishPreviewInteraction(event.pointerId)}
               >
-                編集モード
-              </button>
-              <button
-                aria-selected={previewMode === "preview"}
-                className={previewMode === "preview" ? "is-selected" : ""}
-                disabled={!isPreviewReady}
-                onClick={() => setPreviewMode("preview")}
-                role="tab"
-                type="button"
-              >
-                プレビューモード
-              </button>
-            </div>
-
-            <div className={`preview-stage ${previewMode === "preview" ? "is-clean" : ""}`}>
-              <div className={`preview-object ${previewMode === "preview" && isPreviewReady ? "is-animated" : ""}`}>
-                <div
-                  className="acrylic-card"
-                  ref={cardRef}
-                >
-                  <div
-                    className="preview-hardware"
-                    aria-hidden="true"
-                    style={{
-                      left: `${holePosition}%`,
-                      top: `${holeTopPercent}%`,
-                      transform: `translate(-50%, -${partBottomOpaquePercent}%)`,
-                    }}
-                  >
-                    {isPartImageAvailable ? (
-                      <span className="preview-image-crop">
-                        <img
-                          alt=""
-                          className="preview-image"
-                          onError={() => handlePartImageError(activePart.id)}
-                          src={activePart.image}
-                        />
-                      </span>
-                    ) : (
-                      <span className="preview-fallback">{activePart.fallbackIcon}</span>
-                    )}
-                  </div>
-
-                  <span
-                    className="hole-cutout"
-                    style={{
-                      left: `${holePosition}%`,
-                      top: `${holeTopPercent}%`,
-                    }}
-                  />
-
-                  {previewMode === "edit" ? (
-                    <div className="hole-editor" onPointerDown={handleHolePointerDown}>
-                      <button
-                        aria-label="穴位置を調整"
-                        className="hole-handle"
-                        onDoubleClick={handleHoleReset}
-                        onPointerDown={handleHolePointerDown}
+                <div className="preview-anchor" style={{ left: "50%", top: `${previewAnchorTopPx}px` }}>
+                  <div className="preview-swing-group">
+                    <div
+                      ref={previewBodyRef}
+                      className="preview-rigid-body"
+                      style={{
+                        transform: `rotate(${previewRotation})`,
+                      }}
+                    >
+                      <div
+                        className="preview-hit-area"
+                        onPointerDown={handlePreviewPointerDown}
                         style={{
-                          left: `${holePosition}%`,
-                          top: `${holeTopPercent}%`,
+                          left: `${previewHitAreaLeft}px`,
+                          top: `${previewHitAreaTop}px`,
+                          width: `${previewHitAreaRight - previewHitAreaLeft}px`,
+                          height: `${previewHitAreaBottom - previewHitAreaTop}px`,
                         }}
-                        type="button"
                       />
-                    </div>
-                  ) : null}
-
-                  {uploadedArtwork ? (
-                    <img
-                      alt="アクキーの完成イメージ"
-                      className="artwork"
-                      src={uploadedArtwork.previewUrl}
-                    />
-                  ) : (
-                    <div className={`artwork-placeholder is-${uploadStatus}`}>
-                      <div className="artwork-placeholder-badge" aria-hidden="true">
-                        {uploadStatus === "error" ? "!" : "＋"}
+                      <div
+                        className="preview-hardware"
+                        aria-hidden="true"
+                        style={{
+                          left: "0px",
+                          top: "0px",
+                          transform: "translateX(-50%)",
+                        }}
+                      >
+                        {isPartImageAvailable ? (
+                          <span className="preview-image-crop">
+                            <img
+                              alt=""
+                              className="preview-image"
+                              draggable={false}
+                              onError={() => handlePartImageError(activePart.id)}
+                              src={activePart.image}
+                            />
+                          </span>
+                        ) : (
+                          <span className="preview-fallback">{activePart.fallbackIcon}</span>
+                        )}
                       </div>
-                      <strong>
-                        {uploadStatus === "error"
-                          ? "画像を表示できません"
-                          : "画像をアップロードしてください"}
-                      </strong>
-                      <span>
-                        {uploadStatus === "loading"
-                          ? "読み込み中です..."
-                          : uploadStatus === "error"
-                            ? uploadError
-                            : ""}
-                      </span>
+
+                      <div
+                        className="acrylic-card"
+                        ref={cardRef}
+                        style={{
+                          left: `${cardLeftPx}px`,
+                          top: `${cardTopPx}px`,
+                          width: `${previewCardSize}px`,
+                        }}
+                      >
+                        <span
+                          className="hole-cutout"
+                          style={{
+                            left: `${holeInCardX}px`,
+                            top: `${holeInCardY}px`,
+                          }}
+                        />
+
+                        {uploadedArtwork ? (
+                          <button
+                            aria-label="穴位置を調整"
+                            className="hole-handle"
+                            onDoubleClick={handleHoleReset}
+                            onPointerDown={handleHolePointerDown}
+                            style={{
+                              left: `${holeInCardX}px`,
+                              top: `${holeInCardY}px`,
+                            }}
+                            type="button"
+                          />
+                        ) : null}
+
+                        {uploadedArtwork ? (
+                          <img
+                            alt="アクキーの完成イメージ"
+                            className="artwork"
+                            draggable={false}
+                            src={uploadedArtwork.previewUrl}
+                          />
+                        ) : (
+                          <div className={`artwork-placeholder is-${uploadStatus}`}>
+                            <div className="artwork-placeholder-badge" aria-hidden="true">
+                              {uploadStatus === "error" ? "!" : "＋"}
+                            </div>
+                            <strong>
+                              {uploadStatus === "error"
+                                ? "画像を表示できません"
+                                : "画像をアップロードしてください"}
+                            </strong>
+                            <span>
+                              {uploadStatus === "loading"
+                                ? "読み込み中です.."
+                                : uploadStatus === "error"
+                                  ? uploadError
+                                  : ""}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             </div>
