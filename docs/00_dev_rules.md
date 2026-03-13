@@ -1,7 +1,7 @@
 # 00_dev_rules.md
 
 ## 目的
-このドキュメントは、実装時の共通ルールを定義するものです。  
+このドキュメントは、実装時の共通ルールを定義するものです。
 最小構成、検証容易性、可読性、保守性を優先し、feature scope を守って進めます。
 
 ## 必須チェック
@@ -90,6 +90,7 @@
 - formatter / linter / typecheck / build が通る
 - review を通す
 - 必要な UI 確認が終わっている
+
 ## UI Bugfix Verification Rule
 - UI バグ修正は、コード変更だけで完了判定しない。
 - 完了報告前に、必ずブラウザで対象画面を開き、対象状態を再現して確認する。
@@ -115,3 +116,17 @@
   - 穴位置 = 本体画像の上端輪郭
   - パーツ接続点 = パーツ画像の最下端不透明ピクセル
 - 透過画像を使う場合は、要素矩形ではなく不透明ピクセル基準で扱う。
+
+## Playwright MCP Failure Prevention
+- Playwright MCP で画像アップロードを確認する時は、ローカルファイルを直接 `setInputFiles` しない。ツール側の allowed roots 制約で失敗しやすい。
+- 画像アップロード確認が必要な時は、先に `public/` 配下へ確認用ファイルを置き、ブラウザ側で `fetch('/<file>') -> Blob -> File -> DataTransfer` の形で input に渡す。
+- `browser_take_screenshot` は保存先を明示しない。既定の一時フォルダに保存させる。`C:\Windows\System32` 直下へ保存しようとして失敗しやすい。
+- UI 確認の途中で確認用ファイルを `public/` に置いた場合は、確認後に削除し、`git status` で不要な差分が残っていないことを確認する。
+- Playwright で確認不能な状態が出た時は、すぐに「修正済み」と扱わず、失敗原因が Chrome セッション競合なのか、allowed roots 制約なのか、アプリ側エラーなのかを切り分けてから続行する。
+
+## Playwright MCP Failure Prevention Clean Note
+- Playwright MCP で画像アップロードを確認する時は、ローカルファイルを直接 `setInputFiles` しない。allowed roots 制約で失敗しやすい。
+- 画像アップロード確認が必要な時は、先に `public/` 配下へ確認用ファイルを置き、ブラウザ側で `fetch('/<file>') -> Blob -> File -> DataTransfer` の形で input に渡す。
+- `browser_take_screenshot` は保存先を明示しない。既定の一時フォルダへ保存させる。
+- 確認用ファイルを `public/` に置いた場合は、確認後に削除し、`git status` で不要差分が残っていないことを確認する。
+- Playwright 失敗時は、Chrome セッション競合、allowed roots 制約、アプリ側エラーを切り分けてから続行する。
