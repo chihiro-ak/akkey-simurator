@@ -104,6 +104,8 @@
 #### 利用可能スキル
 - `.codex/skills/impeccable_uiux`
 - `.codex/skills/shadcn_ui`
+- `.codex/skills/quality/dynamic-ui-debug`
+- `.codex/skills/scenario/akkey-motion-simulation`
 - その他、実装に必要な skills
 
 ### Backend Engineer
@@ -166,23 +168,23 @@
 ## 2026-03 UI Fix Retrospective
 - UI 不具合はコード上の推測だけで close しない。完了報告前に必ず実画面を開いて確認する。
 - UI 修正の完了前に、最低 1 回は対象状態を再現して画面確認する。
-- 画面確認では次を最低限行う。
-  - 対象状態の再現
-  - スクリーンショット確認
-  - 必要に応じて DOM / computed style / 座標の実測
 - 実装後は必ず `git diff` を確認し、要求外の文言変更、文字化け、命名変更、不要リファクタを含めない。
 - 座標や接続位置を扱う UI は、実装前に「何を基準点とするか」を 1 行で明文化してから着手する。
   - 例: 穴位置 = 本体画像の上端輪郭
   - 例: パーツ接続点 = パーツ画像の最下端不透明ピクセル
+- 詳細な確認観点と動的 UI のルールは `docs/00_dev_rules.md` を正とする。
 
 ### Frontend Engineer 追加ルール
 - UI バグ修正を完了扱いにする前に、ブラウザで対象画面を実際に確認する。
 - 透過 PNG や重ね合わせ UI は、要素の矩形ではなく見えているピクセル基準で確認する。
 - Playwright MCP を使える場合は優先して使い、確認結果を差分確認とセットで扱う。
+- 動的 UI の詳細ルールは `docs/00_dev_rules.md` と関連 skill を参照する。
 
 ### QA / UI Checker 追加ルール
 - UI の見た目に関する修正は、スクリーンショットか実画面確認を伴わない pass を出さない。
 - 接続位置、重なり順、透明画像、overflow のような視覚依存の不具合は、DOM だけでなく見た目で確認する。
+- 動的 UI の pass / fix 判定基準は `docs/00_dev_rules.md` を参照する。
 
 ### Retrospective Agent 追加ルール
 - 「見ていないのに直ったと判断した」事象が出た場合は、AGENTS、dev rules、skills の 3 点に再発防止を戻す。
+- 物理風 UI の再発防止は、詳細ルールを AGENTS に増やすより `docs/00_dev_rules.md` と skill に戻す。
