@@ -88,9 +88,9 @@ const partMotionProfiles: Record<
   PreviewPhysicsProfile
 > = {
   nasukan: {
-    alignDamping: 2.3,
-    alignStiffness: 5.5,
-    angularDamping: 0.998,
+    alignDamping: 0.72,
+    alignStiffness: 4.9,
+    angularDamping: 0.9993,
     combinedComTorqueScale: 0.46,
     desiredAngleFollow: 0.16,
     dragDamping: 7.2,
@@ -107,9 +107,9 @@ const partMotionProfiles: Record<
     velocityCorrection: 0.06,
   },
   "ball-chain": {
-    alignDamping: 2.2,
-    alignStiffness: 5.2,
-    angularDamping: 0.998,
+    alignDamping: 0.68,
+    alignStiffness: 4.7,
+    angularDamping: 0.99935,
     combinedComTorqueScale: 0.43,
     desiredAngleFollow: 0.16,
     dragDamping: 6.9,
@@ -126,9 +126,9 @@ const partMotionProfiles: Record<
     velocityCorrection: 0.055,
   },
   strap: {
-    alignDamping: 2.1,
-    alignStiffness: 5,
-    angularDamping: 0.998,
+    alignDamping: 0.64,
+    alignStiffness: 4.5,
+    angularDamping: 0.99935,
     combinedComTorqueScale: 0.42,
     desiredAngleFollow: 0.16,
     dragDamping: 6.8,
@@ -553,6 +553,9 @@ function App() {
   );
   const renderedAngle = isDraggingHole ? 0 : previewAngle;
   const previewRotation = `${(-renderedAngle * 180) / Math.PI}deg`;
+  const holeOffsetRatio = Math.min(1, Math.abs(holePosition - 50) / Math.max(holePositionMax - 50, 1));
+  const hardwareUprightFactor = 0.34 + holeOffsetRatio * 0.44;
+  const hardwareCounterRotation = `${((renderedAngle * 180) / Math.PI) * hardwareUprightFactor}deg`;
   const holeRenderX = ((holePosition - 50) / 100) * previewCardSize;
   const holeRenderY = ((holeTopPercent - 50) / 100) * previewCardSize;
   const cardLeftPx =
@@ -943,7 +946,7 @@ function App() {
 
     motion.isDragging = false;
     motion.pointerId = null;
-    motion.angularVelocity = clampValue(motion.angularVelocity * 1.35, -4.4, 4.4);
+    motion.angularVelocity = clampValue(motion.angularVelocity * 1.6, -5.6, 5.6);
     motion.lastTimestamp = performance.now();
     motion.lastDragTimestamp = 0;
     motion.desiredAngle = previewPhysicsModel.equilibriumAngle;
@@ -1084,7 +1087,8 @@ function App() {
                         style={{
                           left: "0px",
                           top: "0px",
-                          transform: "translateX(-50%)",
+                          transform: `translateX(-50%) rotate(${hardwareCounterRotation})`,
+                          transformOrigin: "50% 100%",
                         }}
                       >
                         {isPartImageAvailable ? (
