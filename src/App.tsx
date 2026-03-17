@@ -214,11 +214,11 @@ const analyzeContour = (src: string) =>
       context.drawImage(image, 0, 0, width, height);
       const { data } = context.getImageData(0, 0, width, height);
       const bounds = containBounds(image.naturalWidth, image.naturalHeight);
-      let alphaWeightedX = 0;
-      let alphaWeightedY = 0;
-      let alphaWeightedX2 = 0;
-      let alphaWeightedY2 = 0;
-      let totalAlpha = 0;
+      let opaqueWeightedX = 0;
+      let opaqueWeightedY = 0;
+      let opaqueWeightedX2 = 0;
+      let opaqueWeightedY2 = 0;
+      let opaquePixelCount = 0;
       let top = height - 1;
       let bottom = 0;
       const topEdgeByPercent: Array<number | null> = Array.from({ length: 101 }, (_, percent) => {
@@ -256,31 +256,35 @@ const analyzeContour = (src: string) =>
         for (let x = 0; x < width; x += 1) {
           const alpha = data[(y * width + x) * 4 + 3];
           if (alpha <= alphaThreshold) continue;
-          alphaWeightedX += x * alpha;
-          alphaWeightedY += y * alpha;
-          alphaWeightedX2 += x * x * alpha;
-          alphaWeightedY2 += y * y * alpha;
-          totalAlpha += alpha;
+          opaqueWeightedX += x;
+          opaqueWeightedY += y;
+          opaqueWeightedX2 += x * x;
+          opaqueWeightedY2 += y * y;
+          opaquePixelCount += 1;
           top = Math.min(top, y);
           bottom = Math.max(bottom, y);
         }
       }
       const fallbackCenterXPercent = bounds.left + bounds.width / 2;
       const fallbackCenterYPercent = bounds.top + bounds.height / 2;
-      const alphaCenterXPercent =
-        totalAlpha > 0
-          ? bounds.left + ((alphaWeightedX / totalAlpha) / Math.max(1, width - 1)) * bounds.width
+      const contourCenterXPercent =
+        opaquePixelCount > 0
+          ? bounds.left + ((opaqueWeightedX / opaquePixelCount) / Math.max(1, width - 1)) * bounds.width
           : fallbackCenterXPercent;
-      const alphaCenterYPercent =
-        totalAlpha > 0
-          ? bounds.top + ((alphaWeightedY / totalAlpha) / Math.max(1, height - 1)) * bounds.height
+      const contourCenterYPercent =
+        opaquePixelCount > 0
+          ? bounds.top + ((opaqueWeightedY / opaquePixelCount) / Math.max(1, height - 1)) * bounds.height
           : fallbackCenterYPercent;
-      const pixelMeanX = totalAlpha > 0 ? alphaWeightedX / totalAlpha : (width - 1) / 2;
-      const pixelMeanY = totalAlpha > 0 ? alphaWeightedY / totalAlpha : (height - 1) / 2;
+      const pixelMeanX = opaquePixelCount > 0 ? opaqueWeightedX / opaquePixelCount : (width - 1) / 2;
+      const pixelMeanY = opaquePixelCount > 0 ? opaqueWeightedY / opaquePixelCount : (height - 1) / 2;
       const pixelVarianceX =
-        totalAlpha > 0 ? Math.max(0, alphaWeightedX2 / totalAlpha - pixelMeanX * pixelMeanX) : 0;
+        opaquePixelCount > 0
+          ? Math.max(0, opaqueWeightedX2 / opaquePixelCount - pixelMeanX * pixelMeanX)
+          : 0;
       const pixelVarianceY =
-        totalAlpha > 0 ? Math.max(0, alphaWeightedY2 / totalAlpha - pixelMeanY * pixelMeanY) : 0;
+        opaquePixelCount > 0
+          ? Math.max(0, opaqueWeightedY2 / opaquePixelCount - pixelMeanY * pixelMeanY)
+          : 0;
       const percentScaleX = bounds.width / Math.max(1, width - 1);
       const percentScaleY = bounds.height / Math.max(1, height - 1);
       const meanSquaredRadiusLocal =
@@ -290,9 +294,9 @@ const analyzeContour = (src: string) =>
       const centerBlendRatio = 0.9;
       resolve({
         centerOfMassXPercent:
-          fallbackCenterXPercent * (1 - centerBlendRatio) + alphaCenterXPercent * centerBlendRatio,
+          fallbackCenterXPercent * (1 - centerBlendRatio) + contourCenterXPercent * centerBlendRatio,
         centerOfMassYPercent:
-          fallbackCenterYPercent * (1 - centerBlendRatio) + alphaCenterYPercent * centerBlendRatio,
+          fallbackCenterYPercent * (1 - centerBlendRatio) + contourCenterYPercent * centerBlendRatio,
         bottomOpaquePercent:
           bounds.top + ((bottom / Math.max(1, height - 1)) * bounds.height),
         firstOpaquePercent: valid[0] ?? Math.round(bounds.left),
@@ -344,6 +348,13 @@ const getInsetHolePercent = (
   return edge === "top"
     ? clamp(raw + insetPercent, 0, 100)
     : clamp(raw - insetPercent, 0, 100);
+};
+
+const getVisibleArtworkSpanPercent = (contour: Contour | null) => {
+  if (!contour) return 100;
+  const visibleWidth = Math.max(1, contour.lastOpaquePercent - contour.firstOpaquePercent);
+  const visibleHeight = Math.max(1, contour.bottomOpaquePercent - contour.topOpaquePercent);
+  return Math.max(visibleWidth, visibleHeight);
 };
 
 const getPreviewPhysicsModel = (
@@ -441,7 +452,8 @@ export default function App() {
     sub: defaultHole,
   });
   const [previewAngle, setPreviewAngle] = useState(0);
-  const [subAngle, setSubAngle] = useState(0);
+  const [subSwingAngle, setSubSwingAngle] = useState(0);
+  const [subTiltAngle, setSubTiltAngle] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(typeof window === "undefined" ? 1024 : window.innerWidth);
   const [draggingHole, setDraggingHole] = useState<HoleId | null>(null);
   const [imageAvailability, setImageAvailability] = useState<Record<PartId, boolean>>({ nasukan: true, "ball-chain": true, strap: true });
@@ -460,7 +472,12 @@ export default function App() {
     lastTimestamp: null as number | null,
     pointerId: null as number | null,
   });
-  const subMotionRef = useRef({ angle: 0, velocity: 0 });
+  const subMotionRef = useRef({
+    swingAngle: 0,
+    swingVelocity: 0,
+    tiltAngle: 0,
+    tiltVelocity: 0,
+  });
 
   const mainArtwork = artworks.main;
   const subArtwork = artworks.sub;
@@ -469,21 +486,21 @@ export default function App() {
   const doubleReady = isDouble && !!mainArtwork && !!subArtwork;
   const activePart = useMemo(() => parts.find((part) => part.id === selectedPart) ?? parts[0], [selectedPart]);
   const cardBase = viewportWidth >= 1600
-    ? clamp(viewportWidth * 0.2, 300, 380)
+    ? clamp(viewportWidth * 0.17, 260, 330)
     : viewportWidth >= 1200
-      ? clamp(viewportWidth * 0.22, 280, 360)
+      ? clamp(viewportWidth * 0.19, 240, 320)
       : viewportWidth >= 768
-        ? clamp(viewportWidth * 0.24, 220, 300)
-        : clamp(viewportWidth - 138, 168, 208);
+        ? clamp(viewportWidth * 0.22, 208, 280)
+        : clamp(viewportWidth - 150, 156, 196);
   const pixelsPerCm = cardBase / defaultSizeCm;
-  const topSize = pixelsPerCm * scales.main;
-  const lowerSize = pixelsPerCm * scales.sub;
+  const topSize = (pixelsPerCm * scales.main * 100) / getVisibleArtworkSpanPercent(contours.main);
+  const lowerSize = (pixelsPerCm * scales.sub * 100) / getVisibleArtworkSpanPercent(contours.sub);
   const hardwareVisibleSize = pixelsPerCm * partSizeCm;
   const hardwareWidth = hardwareVisibleSize;
   const hardwareHeight = hardwareVisibleSize;
   const hardwareBottomPx = hardwareHeight * ((partContour?.bottomOpaquePercent ?? 86) / 100);
-  const anchorTop = viewportWidth >= 1200 ? 82 : viewportWidth >= 768 ? 72 : 56;
-  const linkLength = viewportWidth >= 768 ? 6 : 4;
+  const anchorTop = viewportWidth >= 1200 ? 68 : viewportWidth >= 768 ? 60 : 48;
+  const linkLength = viewportWidth >= 1200 ? 14 : viewportWidth >= 768 ? 12 : 9;
   const topHoleY = (topSize * getInsetHolePercent(holes.main, contours.main, "top", topSize)) / 100;
   const topLinkHoleY =
     (topSize * getInsetHolePercent(holes["main-link"], contours.main, "bottom", topSize)) / 100;
@@ -492,7 +509,7 @@ export default function App() {
   const topHoleX = (topSize * holes.main) / 100;
   const topLinkHoleX = (topSize * holes["main-link"]) / 100;
   const lowerHoleX = (lowerSize * holes.sub) / 100;
-  const lowerEquilibrium = ((holes.sub - 50) / 100) * 0.28;
+  const lowerEquilibrium = ((holes.sub - 50) / 100) * 0.14;
   const bottomAnchorX = topLinkHoleX;
   const bottomAnchorY = topLinkHoleY;
   const linkedAttachment = useMemo<LinkedAttachment | undefined>(() => {
@@ -510,9 +527,9 @@ export default function App() {
     const linkOffsetX = (topLinkHoleX - topHoleX) / Math.max(topSize, 1);
     const linkOffsetY = -(topLinkHoleY - topHoleY + linkLength) / Math.max(topSize, 1);
     return {
-      comLocalX: linkOffsetX + lowerCardCenterLocalX + lowerArtworkComLocalX * 0.22,
-      comLocalY: linkOffsetY + lowerCardCenterLocalY + lowerArtworkComLocalY * 0.22,
-      mass: 0.92,
+      comLocalX: linkOffsetX + lowerCardCenterLocalX + lowerArtworkComLocalX * 0.32,
+      comLocalY: linkOffsetY + lowerCardCenterLocalY + lowerArtworkComLocalY * 0.48,
+      mass: 1.26,
     };
   }, [contours.sub, doubleReady, holes.sub, linkLength, lowerSize, topHoleX, topHoleY, topLinkHoleX, topLinkHoleY, topSize]);
   const previewPhysicsModel = useMemo(
@@ -533,8 +550,18 @@ export default function App() {
   );
   const topCardLeft = previewPhysicsModel.cardCenterLocalX * topSize - topSize / 2;
   const topCardTop = -previewPhysicsModel.cardCenterLocalY * topSize - topSize / 2;
-  const lowerCardLeft = -lowerHoleX;
-  const lowerCardTop = -lowerHoleY;
+  const lowerComX = (lowerSize * (contours.sub?.centerOfMassXPercent ?? 50)) / 100;
+  const lowerComY = (lowerSize * (contours.sub?.centerOfMassYPercent ?? 58)) / 100;
+  const lowerCardLeft = -lowerComX;
+  const lowerCardTop = -lowerComY;
+  const lowerHoleOffsetLocalX = lowerHoleX - lowerComX;
+  const lowerHoleOffsetLocalY = lowerComY - lowerHoleY;
+  const lowerCenterRadius = Math.max(
+    1,
+    Math.hypot(lowerHoleOffsetLocalX, lowerHoleOffsetLocalY),
+  );
+  const lowerBaseAngle =
+    Math.PI / 2 - Math.atan2(lowerHoleOffsetLocalY, lowerHoleOffsetLocalX);
   const renderedAngle = draggingHole ? 0 : previewAngle;
   const holeOffsetRatio = Math.min(1, Math.abs(holes.main - 50) / Math.max(holeMax - 50, 1));
   const hardwareUprightFactor = 0.34 + holeOffsetRatio * 0.44;
@@ -627,9 +654,15 @@ export default function App() {
         lastTimestamp: null,
         pointerId: null,
       };
-      subMotionRef.current = { angle: 0, velocity: 0 };
+      subMotionRef.current = {
+        swingAngle: 0,
+        swingVelocity: 0,
+        tiltAngle: 0,
+        tiltVelocity: 0,
+      };
       setPreviewAngle(0);
-      setSubAngle(0);
+      setSubSwingAngle(0);
+      setSubTiltAngle(0);
       return;
     }
   }, [previewReady]);
@@ -695,24 +728,48 @@ export default function App() {
       }
 
       if (doubleReady) {
-        const subTarget = lowerEquilibrium - motion.angle * 0.68;
-        subMotion.velocity +=
-          ((subTarget - subMotion.angle) * 10.8 -
-            subMotion.velocity * 10.4 -
-            motion.angularVelocity * 0.08) *
+        const swingError = normalizeAngle(lowerEquilibrium - subMotion.swingAngle);
+        const angleCoupling = normalizeAngle(motion.angle - subMotion.swingAngle);
+        const connectorDrive =
+          swingError * 9.8 +
+          angleCoupling * 5.4 +
+          motion.angularVelocity * 0.28 -
+          subMotion.swingVelocity * 7.1;
+        subMotion.swingVelocity += connectorDrive * elapsed;
+        subMotion.swingAngle = clamp(
+          normalizeAngle(subMotion.swingAngle + subMotion.swingVelocity * elapsed),
+          -1.16,
+          1.16,
+        );
+        const tiltTarget = clamp(
+          angleCoupling * 0.16 + subMotion.swingVelocity * 0.04,
+          -0.28,
+          0.28,
+        );
+        subMotion.tiltVelocity +=
+          ((tiltTarget - subMotion.tiltAngle) * 9.2 -
+            subMotion.tiltVelocity * 7.8 +
+            motion.angularVelocity * 0.04) *
           elapsed;
-        subMotion.angle = clamp(
-          normalizeAngle(subMotion.angle + subMotion.velocity * elapsed),
-          -0.8,
-          0.8,
+        subMotion.tiltAngle = clamp(
+          normalizeAngle(subMotion.tiltAngle + subMotion.tiltVelocity * elapsed),
+          -0.3,
+          0.3,
         );
       } else {
-        subMotion.velocity += (0 - subMotion.angle) * 12 * elapsed;
-        subMotion.angle = normalizeAngle(subMotion.angle + subMotion.velocity * elapsed);
+        subMotion.swingVelocity += (0 - subMotion.swingAngle) * 12 * elapsed;
+        subMotion.swingAngle = normalizeAngle(
+          subMotion.swingAngle + subMotion.swingVelocity * elapsed,
+        );
+        subMotion.tiltVelocity += (0 - subMotion.tiltAngle) * 14 * elapsed;
+        subMotion.tiltAngle = normalizeAngle(
+          subMotion.tiltAngle + subMotion.tiltVelocity * elapsed,
+        );
       }
 
       setPreviewAngle(motion.angle);
-      setSubAngle(subMotion.angle);
+      setSubSwingAngle(subMotion.swingAngle);
+      setSubTiltAngle(subMotion.tiltAngle);
       motion.lastTimestamp = timestamp;
       frame = window.requestAnimationFrame(tick);
     };
@@ -947,7 +1004,7 @@ export default function App() {
                       {mainArtwork ? <button aria-label="上段の穴位置を調整" className="hole-handle" onDoubleClick={() => setHoles((current) => ({ ...current, main: resolveHole(defaultHole, contours.main, "top") }))} onPointerDown={(event) => beginHoleDrag("main", event)} style={{ left: `${topHoleX}px`, top: `${topHoleY}px` }} type="button" /> : null}
                       {mainArtwork ? <img alt="上段アートワーク" className="artwork" draggable={false} src={mainArtwork.previewUrl} /> : <div className={`artwork-placeholder is-${statuses.main}`}><div className="artwork-placeholder-badge">上</div><strong>上段画像をアップロードしてください</strong><span>{statuses.main === "error" ? errors.main : statuses.main === "loading" ? "読み込み中です..." : "アップロードすると金具とのバランスと揺れを確認できます。"}</span></div>}
                       {isDouble && mainArtwork ? <><span className="hole-cutout is-link-point" style={{ left: `${topLinkHoleX}px`, top: `${topLinkHoleY}px` }} /><button aria-label="上段の下穴位置を調整" className="hole-handle is-link-point" onDoubleClick={() => setHoles((current) => ({ ...current, "main-link": resolveHole(defaultHole, contours.main, "bottom") }))} onPointerDown={(event) => beginHoleDrag("main-link", event)} style={{ left: `${topLinkHoleX}px`, top: `${topLinkHoleY}px` }} type="button" /></> : null}
-                      {isDouble ? <div className={`linked-anchor ${doubleReady ? "is-ready" : "is-pending"}`} style={{ left: `${bottomAnchorX}px`, top: `${bottomAnchorY}px` }}><span className="linked-anchor-ring" /><span className="linked-anchor-chain" style={{ height: `${linkLength}px` }} /><div className="linked-swing-group" style={{ transform: `translateY(${linkLength}px) rotate(${(-subAngle * 180) / Math.PI}deg)` }}><div className="acrylic-card linked-card" ref={subCardRef} style={{ left: `${lowerCardLeft}px`, top: `${lowerCardTop}px`, width: `${lowerSize}px` }}><span className="hole-cutout" style={{ left: `${lowerHoleX}px`, top: `${lowerHoleY}px` }} />{subArtwork ? <button aria-label="下段の穴位置を調整" className="hole-handle is-secondary" onDoubleClick={() => setHoles((current) => ({ ...current, sub: resolveHole(defaultHole, contours.sub, "top") }))} onPointerDown={(event) => beginHoleDrag("sub", event)} style={{ left: `${lowerHoleX}px`, top: `${lowerHoleY}px` }} type="button" /> : null}{subArtwork ? <img alt="下段アートワーク" className="artwork" draggable={false} src={subArtwork.previewUrl} /> : <div className="artwork-placeholder is-empty is-secondary"><div className="artwork-placeholder-badge">下</div><strong>下段画像を追加すると 2 連になります</strong><span>上下サイズのバランスと追従揺れをここで確認できます。</span></div>}</div></div></div> : null}
+                      {isDouble ? <div className={`linked-anchor ${doubleReady ? "is-ready" : "is-pending"}`} style={{ left: `${bottomAnchorX}px`, top: `${bottomAnchorY}px` }}><span className="linked-anchor-ring" /><div className="linked-swing-group" style={{ transform: `rotate(${(-subSwingAngle * 180) / Math.PI}deg)` }}><span className="linked-anchor-chain" style={{ height: `${linkLength}px` }} /><div className="linked-body-group" style={{ transform: `translateY(${linkLength + lowerCenterRadius}px) rotate(${((-(lowerBaseAngle + subTiltAngle)) * 180) / Math.PI}deg)` }}><div className="acrylic-card linked-card" ref={subCardRef} style={{ left: `${lowerCardLeft}px`, top: `${lowerCardTop}px`, width: `${lowerSize}px` }}><span className="hole-cutout" style={{ left: `${lowerHoleX}px`, top: `${lowerHoleY}px` }} />{subArtwork ? <button aria-label="下段の穴位置を調整" className="hole-handle is-secondary" onDoubleClick={() => setHoles((current) => ({ ...current, sub: resolveHole(defaultHole, contours.sub, "top") }))} onPointerDown={(event) => beginHoleDrag("sub", event)} style={{ left: `${lowerHoleX}px`, top: `${lowerHoleY}px` }} type="button" /> : null}{subArtwork ? <img alt="下段アートワーク" className="artwork" draggable={false} src={subArtwork.previewUrl} /> : <div className="artwork-placeholder is-empty is-secondary"><div className="artwork-placeholder-badge">下</div><strong>下段画像を追加すると 2 連になります</strong><span>上下サイズのバランスと追従揺れをここで確認できます。</span></div>}</div></div></div></div> : null}
                     </div>
                   </div>
                 </div>

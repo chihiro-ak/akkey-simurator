@@ -837,11 +837,15 @@ img {
 }
 
 .linked-anchor-chain {
+  position: absolute;
+  left: 50%;
+  top: 0;
   width: 4px;
   display: block;
-  margin: -2px auto 0;
+  margin-top: -2px;
   border-radius: 999px;
   background: linear-gradient(180deg, rgba(171, 189, 201, 0.96), rgba(214, 225, 232, 0.96));
+  transform: translateX(-50%);
 }
 
 .linked-swing-group {
@@ -850,6 +854,15 @@ img {
   width: 0;
   height: 0;
   transform-origin: 50% 0;
+}
+
+.linked-body-group {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
 }
 
 .hole-handle.is-secondary {
