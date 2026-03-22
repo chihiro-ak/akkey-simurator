@@ -77,8 +77,13 @@ export function PreviewCanvas({
                   className={`preview-artwork ${thicknessClass}`}
                   style={{ left: `${artworkLeft}px`, top: `${artworkTop}px`, width: `${artworkSize}px` }}
                 >
+                  <span className="acrylic-back-layer" />
+                  <span className="acrylic-side-band" />
+                  <span className="acrylic-side-glow" />
                   <span className="hole-shadow is-preview" style={{ left: `${holeX}px`, top: `${holeY}px` }} />
                   <img alt="アクキープレビュー" className="artwork-image" draggable={false} src={artwork.previewUrl} />
+                  <span className="acrylic-front-gloss" />
+                  <span className="acrylic-side-specular" />
                 </div>
               </div>
             </div>
