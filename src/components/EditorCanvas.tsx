@@ -1,3 +1,5 @@
+import type { PointerEvent, RefObject } from "react";
+
 import { HardwareStack } from "./HardwareStack";
 import type { Artwork, UploadStatus } from "../simulator";
 
@@ -7,12 +9,12 @@ type Props = {
   hardwareBottomPx: number;
   hardwareHeight: number;
   hardwareWidth: number;
-  cardRef: React.RefObject<HTMLDivElement | null>;
+  cardRef: RefObject<HTMLDivElement | null>;
   error: string | null;
   holePositionLabel: string;
   holeX: number;
   holeY: number;
-  onBeginHoleDrag: (event: React.PointerEvent<HTMLButtonElement>) => void;
+  onBeginHoleDrag: (event: PointerEvent<HTMLButtonElement>) => void;
   onResetHole: () => void;
   partImage: string;
   ringSize: number;
@@ -43,14 +45,14 @@ export function EditorCanvas({
       <div className="canvas-header">
         <div>
           <p className="section-label">編集</p>
-          <h3>穴位置調整</h3>
+          <h3>穴位置を調整</h3>
         </div>
         <button className="ghost-button" onClick={onResetHole} type="button">
-          中央へ戻す
+          中央に戻す
         </button>
       </div>
 
-      <p className="canvas-note">安全エリアと穴マーカーを見ながら、接続位置だけを調整します。</p>
+      <p className="canvas-note">穴位置だけを見ながら、接続バランスを整えます。</p>
 
       <div className="editor-stage">
         <div className="editor-hardware-wrap">
@@ -85,7 +87,7 @@ export function EditorCanvas({
           ) : (
             <div className={`empty-card is-${status}`}>
               <strong>画像を読み込むと編集できます</strong>
-              <span>{status === "error" ? error : "穴位置 = 本体画像の上端輪郭に沿った穴中心として扱います。"}</span>
+              <span>{status === "error" ? error : "穴位置は本体画像の上部輪郭を基準に調整できます。"}</span>
             </div>
           )}
         </div>
@@ -93,7 +95,7 @@ export function EditorCanvas({
 
       <div className="canvas-footer">
         <p>穴位置 {holePositionLabel}</p>
-        <p>揺れ確認はプレビュー画面で行います</p>
+        <p>接続位置を調整中</p>
       </div>
     </section>
   );

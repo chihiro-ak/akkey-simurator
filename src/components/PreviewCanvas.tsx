@@ -1,6 +1,8 @@
+import type { PointerEvent, RefObject } from "react";
+
 import type { PartOption } from "../keychainConfig";
-import { HardwareStack } from "./HardwareStack";
 import type { Artwork } from "../simulator";
+import { HardwareStack } from "./HardwareStack";
 
 type Props = {
   angle: number;
@@ -16,10 +18,10 @@ type Props = {
   holeX: number;
   holeY: number;
   onEndPreviewDrag: (pointerId?: number) => void;
-  onMovePreviewDrag: (event: React.PointerEvent<HTMLDivElement>) => void;
-  onPreviewDrag: (event: React.PointerEvent<HTMLDivElement>) => void;
+  onMovePreviewDrag: (event: PointerEvent<HTMLDivElement>) => void;
+  onPreviewDrag: (event: PointerEvent<HTMLDivElement>) => void;
   previewReady: boolean;
-  previewRef: React.RefObject<HTMLDivElement | null>;
+  previewRef: RefObject<HTMLDivElement | null>;
   renderedPart: PartOption;
   ringSize: number;
   thicknessClass: string;
@@ -56,7 +58,7 @@ export function PreviewCanvas({
         </div>
       </div>
 
-      <p className="canvas-note">編集用マーカーは出さず、金具 PNG + 丸カン PNG + 本体画像だけで完成見えを確認します。</p>
+      <p className="canvas-note">金具・丸カン・本体画像のつながりだけを見せる完成イメージです。</p>
 
       <div
         className="preview-stage"
@@ -84,21 +86,21 @@ export function PreviewCanvas({
                 style={{ left: `${artworkLeft}px`, top: `${artworkTop}px`, width: `${artworkSize}px` }}
               >
                 <span className="hole-shadow is-preview" style={{ left: `${holeX}px`, top: `${holeY}px` }} />
-                <img alt="アクキー完成プレビュー" className="artwork-image" draggable={false} src={artwork.previewUrl} />
+                <img alt="アクキープレビュー" className="artwork-image" draggable={false} src={artwork.previewUrl} />
               </div>
             </div>
           </div>
         ) : (
           <div className="empty-card large">
-            <strong>まだプレビューできません</strong>
-            <span>画像をアップロードすると、ここに完成見えと揺れ確認が表示されます。</span>
+            <strong>ここに完成イメージが出ます</strong>
+            <span>画像を追加すると、穴位置を反映した金具と丸カンの見え方を確認できます。</span>
           </div>
         )}
       </div>
 
       <div className="canvas-footer">
-        <p>ドラッグで揺れ方を確認</p>
-        <p>丸カン位置は編集画面の穴位置を基準に反映</p>
+        <p>ドラッグで揺れを確認</p>
+        <p>穴位置をそのまま反映</p>
       </div>
     </section>
   );

@@ -16,9 +16,9 @@ export type PartOption = {
 };
 
 export const partOptions: PartOption[] = [
-  { id: "nasukan", label: "ナスカン", image: nasukanImage, fallbackIcon: "◎", note: "定番の見え方" },
-  { id: "ball-chain", label: "ボールチェーン", image: ballChainImage, fallbackIcon: "◌", note: "軽めの印象" },
-  { id: "strap", label: "ストラップ", image: strapImage, fallbackIcon: "◍", note: "やわらかな見え方" },
+  { id: "nasukan", label: "ナスカン", image: nasukanImage, fallbackIcon: "N", note: "いちばん定番" },
+  { id: "ball-chain", label: "ボールチェーン", image: ballChainImage, fallbackIcon: "B", note: "やわらかい見え方" },
+  { id: "strap", label: "ストラップ", image: strapImage, fallbackIcon: "S", note: "軽やかな印象" },
 ];
 
 export const jumpRingAsset = jumpRingImage;

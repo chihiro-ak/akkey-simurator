@@ -1,3 +1,5 @@
+import type { ChangeEvent } from "react";
+
 import { maxSizeCm, minSizeCm, sizeChipOptions, thicknessOptions, type PartOption, type ThicknessMm } from "../keychainConfig";
 import type { Artwork, UploadStatus } from "../simulator";
 
@@ -7,7 +9,7 @@ type Props = {
   onDropFile: (file?: File) => void;
   onSelectPart: (id: PartOption["id"]) => void;
   onThicknessChange: (value: ThicknessMm) => void;
-  onUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   parts: PartOption[];
   selectedPartId: PartOption["id"];
   sizeCm: number;
@@ -34,8 +36,8 @@ export function SettingsSidebar({
     <aside className="settings-panel">
       <section className="surface-card">
         <div className="section-header">
-          <p className="section-label">設定</p>
-          <h2>画像アップロード</h2>
+          <p className="section-label">画像</p>
+          <h2>画像をアップロード</h2>
         </div>
 
         <label
@@ -57,7 +59,7 @@ export function SettingsSidebar({
                 ? "画像を読み込み中です"
                 : status === "error"
                   ? error
-                  : "透過 PNG 推奨。ドラッグ&ドロップでも追加できます。"}
+                  : "透過 PNG 推奨。ドラッグ＆ドロップにも対応しています。"}
             </span>
           </div>
         </label>
@@ -65,7 +67,7 @@ export function SettingsSidebar({
 
       <section className="surface-card">
         <div className="section-header">
-          <p className="section-label">設定</p>
+          <p className="section-label">金具</p>
           <h2>金具選択</h2>
         </div>
 
@@ -89,7 +91,7 @@ export function SettingsSidebar({
 
       <section className="surface-card">
         <div className="section-header">
-          <p className="section-label">設定</p>
+          <p className="section-label">サイズ</p>
           <h2>サイズ</h2>
         </div>
 
@@ -125,7 +127,7 @@ export function SettingsSidebar({
 
       <section className="surface-card">
         <div className="section-header">
-          <p className="section-label">設定</p>
+          <p className="section-label">厚み</p>
           <h2>厚み</h2>
         </div>
 
@@ -141,7 +143,6 @@ export function SettingsSidebar({
             </button>
           ))}
         </div>
-        <p className="helper-copy">要約に反映し、今後の見た目調整にもつなげられる状態にしています。</p>
       </section>
     </aside>
   );

@@ -1,3 +1,4 @@
+import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
 import { DesignSummary } from "./components/DesignSummary";
@@ -18,7 +19,13 @@ import { useArtworkUpload } from "./hooks/useArtworkUpload";
 import { useHoleDrag } from "./hooks/useHoleDrag";
 import { usePartContour } from "./hooks/usePartContour";
 import { usePreviewMotion } from "./hooks/usePreviewMotion";
-import { defaultHole, getInsetHolePercent, getPreviewPhysicsModel, getVisibleArtworkSpanPercent, resolveHole } from "./simulator";
+import {
+  defaultHole,
+  getInsetHolePercent,
+  getPreviewPhysicsModel,
+  getVisibleArtworkSpanPercent,
+  resolveHole,
+} from "./simulator";
 
 export default function App() {
   const [selectedPart, setSelectedPart] = useState<PartId>("nasukan");
@@ -67,6 +74,7 @@ export default function App() {
   const hardwareBottomPx = hardwareHeight * ((partContour?.bottomOpaquePercent ?? 86) / 100);
   const ringSize = Math.min(Math.max(hardwareSize * 0.36, 34), 48);
   const anchorTop = viewportWidth >= 1200 ? 120 : viewportWidth >= 768 ? 100 : 92;
+
   const physicsModel = useMemo(
     () =>
       getPreviewPhysicsModel(
@@ -82,6 +90,7 @@ export default function App() {
       ),
     [activePart.id, artworkSize, contour, hardwareBottomPx, hardwareHeight, hardwareWidth, holePosition, holeTopPercent, partContour],
   );
+
   const artworkLeft = physicsModel.cardCenterLocalX * artworkSize - artworkSize / 2;
   const artworkTop = -physicsModel.cardCenterLocalY * artworkSize - artworkSize / 2;
 
@@ -100,7 +109,7 @@ export default function App() {
   const hardwareCounterRotation = `${((renderedAngle * 180) / Math.PI) * (0.34 + holeOffsetRatio * 0.44)}deg`;
   const thicknessClass = `thickness-${thicknessMm}`;
 
-  const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
     const nextArtwork = await processFile(file);
@@ -119,9 +128,9 @@ export default function App() {
   return (
     <main className="workspace-shell">
       <header className="page-header">
-        <p className="section-label">Single Acrylic Keychain MVP</p>
+        <p className="page-kicker">単体アクキー</p>
         <h1>アクキーシミュレーター</h1>
-        <p>Stitch モックに寄せながら、穴位置調整と完成見え確認を 1 画面で行える単体アクキー用の構成です。</p>
+        <p>画像を入れて、穴位置と金具のつながりを整えながら完成見えを確認します。</p>
       </header>
 
       <div className="workspace-grid">
@@ -141,11 +150,21 @@ export default function App() {
         />
 
         <section className="canvas-panel">
-          <div className="canvas-switch">
-            <button className={viewMode === "edit" ? "is-active" : ""} onClick={() => setViewMode("edit")} type="button">
+          <div className="canvas-switch" role="tablist" aria-label="表示切り替え">
+            <button
+              aria-selected={viewMode === "edit"}
+              className={viewMode === "edit" ? "is-active" : ""}
+              onClick={() => setViewMode("edit")}
+              type="button"
+            >
               編集
             </button>
-            <button className={viewMode === "preview" ? "is-active" : ""} onClick={() => setViewMode("preview")} type="button">
+            <button
+              aria-selected={viewMode === "preview"}
+              className={viewMode === "preview" ? "is-active" : ""}
+              onClick={() => setViewMode("preview")}
+              type="button"
+            >
               プレビュー
             </button>
           </div>
@@ -198,8 +217,8 @@ export default function App() {
             actionMessage={actionMessage}
             holeAdjusted={previewReady}
             holePositionLabel={holePositionLabel}
-            onSave={() => setActionMessage("保存は準備中です。現在の設定を保持しやすい構造だけ先に追加しています。")}
-            onShare={() => setActionMessage("共有は準備中です。共有リンクや画像書き出しへ後から接続できます。")}
+            onSave={() => setActionMessage("保存はダミーです。あとから実処理へ差し替えやすい状態にしています。")}
+            onShare={() => setActionMessage("共有はダミーです。あとからリンク発行や画像書き出しへつなげられます。")}
             partLabel={activePart.label}
             sizeLabel={`${sizeCm.toFixed(sizeCm % 1 === 0 ? 0 : 1)}cm`}
             thicknessLabel={`${thicknessMm}mm`}

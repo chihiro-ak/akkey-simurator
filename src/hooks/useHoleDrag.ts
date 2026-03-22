@@ -1,3 +1,4 @@
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { resolveHole, type Contour } from "../simulator";
@@ -31,7 +32,7 @@ export function useHoleDrag({ contour, onChange }: Options) {
     };
   }, [contour, dragging, onChange]);
 
-  const beginHoleDrag = (event: React.PointerEvent<HTMLButtonElement>) => {
+  const beginHoleDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();
     event.stopPropagation();
     const card = cardRef.current;

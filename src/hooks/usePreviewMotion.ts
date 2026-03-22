@@ -1,3 +1,4 @@
+import type { PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { clamp, normalizeAngle, rotatePoint, type PreviewPhysicsModel } from "../simulator";
@@ -135,7 +136,7 @@ export function usePreviewMotion({
   const getDragTargetAngle = (pointerWorldX: number) =>
     clamp(Math.atan(pointerWorldX * 1.7) * 0.98, -previewAngleLimit, previewAngleLimit);
 
-  const beginPreviewDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+  const beginPreviewDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     if (!enabled || disabled || !previewRef.current) return;
     event.preventDefault();
     const motion = motionRef.current;
@@ -151,7 +152,7 @@ export function usePreviewMotion({
     motion.lastTimestamp = motion.lastDragTimestamp;
   };
 
-  const movePreviewDrag = (event: React.PointerEvent<HTMLDivElement>) => {
+  const movePreviewDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
     const motion = motionRef.current;
     if (!motion.isDragging || motion.pointerId !== event.pointerId) return;
     const nextTarget = getPointerWorldPosition(event.clientX, event.clientY);
