@@ -1,3 +1,5 @@
+import type { PartId } from "./keychainConfig";
+
 export type UploadStatus = "empty" | "loading" | "ready" | "error";
 
 export type Artwork = {
@@ -18,6 +20,29 @@ export type Contour = {
   bottomEdgeByPercent: Array<number | null>;
 };
 
+export type PreviewPhysicsProfile = {
+  alignDamping: number;
+  alignStiffness: number;
+  angularDamping: number;
+  combinedComTorqueScale: number;
+  dragDamping: number;
+  dragFollowStiffness: number;
+  hardwareMass: number;
+  inertiaBase: number;
+  maxAngularSpeed: number;
+  totalMass: number;
+};
+
+export type PreviewPhysicsModel = {
+  cardCenterLocalX: number;
+  cardCenterLocalY: number;
+  equilibriumAngle: number;
+  inertia: number;
+  pivotToComLocalX: number;
+  pivotToComLocalY: number;
+  profile: PreviewPhysicsProfile;
+};
+
 export const defaultHole = 50;
 export const holeMin = 18;
 export const holeMax = 82;
@@ -26,8 +51,52 @@ const alphaThreshold = 16;
 const holeInsetPx = 10;
 const acceptedTypes = ["image/png", "image/jpeg", "image/webp"];
 const acceptedExtensions = [".png", ".jpg", ".jpeg", ".webp"];
+const partMotionProfiles: Record<PartId, PreviewPhysicsProfile> = {
+  nasukan: {
+    alignDamping: 0.72,
+    alignStiffness: 4.9,
+    angularDamping: 0.9993,
+    combinedComTorqueScale: 0.46,
+    dragDamping: 7.2,
+    dragFollowStiffness: 16.5,
+    hardwareMass: 0.22,
+    inertiaBase: 0.32,
+    maxAngularSpeed: 6.8,
+    totalMass: 1.98,
+  },
+  "ball-chain": {
+    alignDamping: 0.68,
+    alignStiffness: 4.7,
+    angularDamping: 0.99935,
+    combinedComTorqueScale: 0.43,
+    dragDamping: 6.9,
+    dragFollowStiffness: 15.8,
+    hardwareMass: 0.14,
+    inertiaBase: 0.3,
+    maxAngularSpeed: 6.9,
+    totalMass: 1.66,
+  },
+  strap: {
+    alignDamping: 0.64,
+    alignStiffness: 4.5,
+    angularDamping: 0.99935,
+    combinedComTorqueScale: 0.42,
+    dragDamping: 6.8,
+    dragFollowStiffness: 15.6,
+    hardwareMass: 0.12,
+    inertiaBase: 0.29,
+    maxAngularSpeed: 6.9,
+    totalMass: 1.58,
+  },
+};
 
 export const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+export const normalizeAngle = (angle: number) => Math.atan2(Math.sin(angle), Math.cos(angle));
+export const rotatePoint = (x: number, y: number, angle: number) => {
+  const cos = Math.cos(angle);
+  const sin = Math.sin(angle);
+  return { x: x * cos - y * sin, y: x * sin + y * cos };
+};
 
 const containBounds = (width: number, height: number) => {
   const ratio = width / height;
@@ -212,4 +281,65 @@ export const getInsetHolePercent = (position: number, contour: Contour | null, s
   const raw = getHoleEdge(position, contour);
   const insetPercent = (holeInsetPx / Math.max(sizePx, 1)) * 100;
   return clamp(raw + insetPercent, 0, 100);
+};
+
+export const getVisibleArtworkSpanPercent = (contour: Contour | null) => {
+  if (!contour) return 100;
+  const visibleWidth = Math.max(1, contour.lastOpaquePercent - contour.firstOpaquePercent);
+  const visibleHeight = Math.max(1, contour.bottomOpaquePercent - contour.topOpaquePercent);
+  return Math.max(visibleWidth, visibleHeight);
+};
+
+export const getPreviewPhysicsModel = (
+  partId: PartId,
+  holePosition: number,
+  holeTopPercent: number,
+  artworkContour: Contour | null,
+  partContour: Contour | null,
+  cardSize: number,
+  hardwareFrameWidth: number,
+  hardwareFrameHeight: number,
+  hardwareBottomPx: number,
+) => {
+  const holeLocalX = (holePosition - 50) / 100;
+  const holeLocalY = (50 - holeTopPercent) / 100;
+  const hardwareBottomLocalY = hardwareBottomPx / Math.max(cardSize, 1);
+  const artworkComLocalX = ((artworkContour?.centerOfMassXPercent ?? 50) - 50) / 100;
+  const artworkComLocalY = (50 - (artworkContour?.centerOfMassYPercent ?? 58)) / 100;
+  const hardwareComXPercentInCard =
+    holePosition +
+    (((partContour?.centerOfMassXPercent ?? 50) - 50) / 100) *
+      ((hardwareFrameWidth / Math.max(cardSize, 1)) * 100);
+  const hardwareComYPx =
+    -hardwareBottomPx + ((partContour?.centerOfMassYPercent ?? 62) / 100) * hardwareFrameHeight;
+  const hardwareComYPercentInCard = (hardwareComYPx / Math.max(cardSize, 1)) * 100;
+  const hardwareComLocalX = (hardwareComXPercentInCard - 50) / 100;
+  const hardwareComLocalY = (50 - hardwareComYPercentInCard) / 100;
+  const profile = partMotionProfiles[partId];
+  const artworkMass = Math.max(profile.totalMass - profile.hardwareMass, 0.8);
+  const combinedMass = artworkMass + profile.hardwareMass;
+  const combinedComLocalX =
+    (artworkComLocalX * artworkMass + hardwareComLocalX * profile.hardwareMass) / combinedMass;
+  const combinedComLocalY =
+    (artworkComLocalY * artworkMass + hardwareComLocalY * profile.hardwareMass) / combinedMass;
+  const cardCenterLocalX = -holeLocalX;
+  const cardCenterLocalY = -(hardwareBottomLocalY + holeLocalY);
+  const pivotToComLocalX = cardCenterLocalX + combinedComLocalX * 0.34;
+  const pivotToComLocalY = cardCenterLocalY + combinedComLocalY * 0.34;
+  const equilibriumAngle = normalizeAngle(-Math.PI / 2 - Math.atan2(pivotToComLocalY, pivotToComLocalX));
+  const balanceDistance = Math.hypot(pivotToComLocalX, pivotToComLocalY);
+  const inertia =
+    profile.inertiaBase +
+    balanceDistance * balanceDistance * 0.42 +
+    (artworkContour ? 0.04 : 0.02);
+
+  return {
+    cardCenterLocalX,
+    cardCenterLocalY,
+    equilibriumAngle,
+    inertia,
+    pivotToComLocalX,
+    pivotToComLocalY,
+    profile,
+  } satisfies PreviewPhysicsModel;
 };
