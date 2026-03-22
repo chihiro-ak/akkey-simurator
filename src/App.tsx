@@ -1,7 +1,6 @@
 import type { ChangeEvent } from "react";
 import { useEffect, useMemo, useState } from "react";
 
-import { DesignSummary } from "./components/DesignSummary";
 import { EditorCanvas } from "./components/EditorCanvas";
 import { PreviewCanvas } from "./components/PreviewCanvas";
 import { SettingsSidebar } from "./components/SettingsSidebar";
@@ -34,7 +33,6 @@ export default function App() {
   const [thicknessMm, setThicknessMm] = useState<ThicknessMm>(3);
   const [holePosition, setHolePosition] = useState(defaultHole);
   const [viewportWidth, setViewportWidth] = useState(typeof window === "undefined" ? 1280 : window.innerWidth);
-  const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const { artwork, contour, error, processFile, status } = useArtworkUpload();
   const activePart = useMemo(() => partOptions.find((part) => part.id === selectedPart) ?? partOptions[0], [selectedPart]);
@@ -73,7 +71,7 @@ export default function App() {
   const hardwareHeight = hardwareSize;
   const hardwareBottomPx = hardwareHeight * ((partContour?.bottomOpaquePercent ?? 86) / 100);
   const ringSize = Math.min(Math.max(hardwareSize * 0.36, 34), 48);
-  const anchorTop = viewportWidth >= 1200 ? 120 : viewportWidth >= 768 ? 100 : 92;
+  const anchorTop = viewportWidth >= 1200 ? 124 : viewportWidth >= 768 ? 102 : 92;
 
   const physicsModel = useMemo(
     () =>
@@ -124,107 +122,100 @@ export default function App() {
 
   const handleResetHole = () => setHolePosition(resolveHole(defaultHole, contour));
   const holePositionLabel = `${Math.round(holePosition)}%`;
+  const sizeLabel = `${(sizeCm * 10).toFixed(0)}mm`;
 
   return (
-    <main className="workspace-shell">
-      <header className="page-header">
-        <p className="page-kicker">単体アクキー</p>
-        <h1>アクキーシミュレーター</h1>
-        <p>画像を入れて、穴位置と金具のつながりを整えながら完成見えを確認します。</p>
+    <>
+      <header className="topbar">
+        <div className="topbar-inner">
+          <h1>アクキーシミュレーター</h1>
+        </div>
       </header>
 
-      <div className="workspace-grid">
-        <SettingsSidebar
-          artwork={artwork}
-          error={error}
-          onDropFile={handleDropFile}
-          onSelectPart={setSelectedPart}
-          onThicknessChange={setThicknessMm}
-          onUpload={handleUpload}
-          parts={partOptions}
-          selectedPartId={selectedPart}
-          setSizeCm={setSizeCm}
-          sizeCm={sizeCm}
-          status={status}
-          thicknessMm={thicknessMm}
-        />
-
-        <section className="canvas-panel">
-          <div className="canvas-switch" role="tablist" aria-label="表示切り替え">
-            <button
-              aria-selected={viewMode === "edit"}
-              className={viewMode === "edit" ? "is-active" : ""}
-              onClick={() => setViewMode("edit")}
-              type="button"
-            >
-              編集
-            </button>
-            <button
-              aria-selected={viewMode === "preview"}
-              className={viewMode === "preview" ? "is-active" : ""}
-              onClick={() => setViewMode("preview")}
-              type="button"
-            >
-              プレビュー
-            </button>
-          </div>
-
-          {viewMode === "edit" ? (
-            <EditorCanvas
-              artwork={artwork}
-              artworkSize={artworkSize}
-              cardRef={cardRef}
-              error={error}
-              hardwareBottomPx={hardwareBottomPx}
-              hardwareHeight={hardwareHeight}
-              hardwareWidth={hardwareWidth}
-              holePositionLabel={holePositionLabel}
-              holeX={holeX}
-              holeY={holeY}
-              onBeginHoleDrag={beginHoleDrag}
-              onResetHole={handleResetHole}
-              partImage={activePart.image}
-              ringSize={ringSize}
-              status={status}
-              thicknessClass={thicknessClass}
-            />
-          ) : (
-            <PreviewCanvas
-              angle={angle}
-              anchorTop={anchorTop}
-              artwork={artwork}
-              artworkLeft={artworkLeft}
-              artworkSize={artworkSize}
-              artworkTop={artworkTop}
-              hardwareBottomPx={hardwareBottomPx}
-              hardwareCounterRotation={hardwareCounterRotation}
-              hardwareHeight={hardwareHeight}
-              hardwareWidth={hardwareWidth}
-              holeX={holeX}
-              holeY={holeY}
-              onEndPreviewDrag={endPreviewDrag}
-              onMovePreviewDrag={movePreviewDrag}
-              onPreviewDrag={beginPreviewDrag}
-              previewReady={previewReady}
-              previewRef={previewRef}
-              renderedPart={activePart}
-              ringSize={ringSize}
-              thicknessClass={thicknessClass}
-            />
-          )}
-
-          <DesignSummary
-            actionMessage={actionMessage}
-            holeAdjusted={previewReady}
-            holePositionLabel={holePositionLabel}
-            onSave={() => setActionMessage("保存はダミーです。あとから実処理へ差し替えやすい状態にしています。")}
-            onShare={() => setActionMessage("共有はダミーです。あとからリンク発行や画像書き出しへつなげられます。")}
-            partLabel={activePart.label}
-            sizeLabel={`${sizeCm.toFixed(sizeCm % 1 === 0 ? 0 : 1)}cm`}
-            thicknessLabel={`${thicknessMm}mm`}
+      <main className="workspace-shell">
+        <div className="workspace-grid">
+          <SettingsSidebar
+            artwork={artwork}
+            error={error}
+            onDropFile={handleDropFile}
+            onSelectPart={setSelectedPart}
+            onThicknessChange={setThicknessMm}
+            onUpload={handleUpload}
+            parts={partOptions}
+            selectedPartId={selectedPart}
+            setSizeCm={setSizeCm}
+            sizeCm={sizeCm}
+            sizeLabel={sizeLabel}
+            status={status}
+            thicknessMm={thicknessMm}
           />
-        </section>
-      </div>
-    </main>
+
+          <section className="canvas-column">
+            <div className="canvas-switch" role="tablist" aria-label="表示切り替え">
+              <button
+                aria-selected={viewMode === "edit"}
+                className={viewMode === "edit" ? "is-active" : ""}
+                onClick={() => setViewMode("edit")}
+                type="button"
+              >
+                編集
+              </button>
+              <button
+                aria-selected={viewMode === "preview"}
+                className={viewMode === "preview" ? "is-active" : ""}
+                onClick={() => setViewMode("preview")}
+                type="button"
+              >
+                プレビュー
+              </button>
+            </div>
+
+            {viewMode === "edit" ? (
+              <EditorCanvas
+                artwork={artwork}
+                artworkSize={artworkSize}
+                cardRef={cardRef}
+                error={error}
+                hardwareBottomPx={hardwareBottomPx}
+                hardwareHeight={hardwareHeight}
+                hardwareWidth={hardwareWidth}
+                holePositionLabel={holePositionLabel}
+                holeX={holeX}
+                holeY={holeY}
+                onBeginHoleDrag={beginHoleDrag}
+                onResetHole={handleResetHole}
+                partImage={activePart.image}
+                ringSize={ringSize}
+                status={status}
+                thicknessClass={thicknessClass}
+              />
+            ) : (
+              <PreviewCanvas
+                angle={angle}
+                anchorTop={anchorTop}
+                artwork={artwork}
+                artworkLeft={artworkLeft}
+                artworkSize={artworkSize}
+                artworkTop={artworkTop}
+                hardwareBottomPx={hardwareBottomPx}
+                hardwareCounterRotation={hardwareCounterRotation}
+                hardwareHeight={hardwareHeight}
+                hardwareWidth={hardwareWidth}
+                holeX={holeX}
+                holeY={holeY}
+                onEndPreviewDrag={endPreviewDrag}
+                onMovePreviewDrag={movePreviewDrag}
+                onPreviewDrag={beginPreviewDrag}
+                previewReady={previewReady}
+                previewRef={previewRef}
+                renderedPart={activePart}
+                ringSize={ringSize}
+                thicknessClass={thicknessClass}
+              />
+            )}
+          </section>
+        </div>
+      </main>
+    </>
   );
 }

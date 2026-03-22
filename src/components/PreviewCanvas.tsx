@@ -51,17 +51,8 @@ export function PreviewCanvas({
 }: Props) {
   return (
     <section className="canvas-card">
-      <div className="canvas-header">
-        <div>
-          <p className="section-label">プレビュー</p>
-          <h3>完成見えと揺れ確認</h3>
-        </div>
-      </div>
-
-      <p className="canvas-note">金具・丸カン・本体画像のつながりだけを見せる完成イメージです。</p>
-
       <div
-        className="preview-stage"
+        className="canvas-frame is-preview"
         onPointerCancel={(event) => onEndPreviewDrag(event.pointerId)}
         onPointerDown={onPreviewDrag}
         onPointerMove={onMovePreviewDrag}
@@ -69,38 +60,35 @@ export function PreviewCanvas({
         ref={previewRef}
       >
         {previewReady && artwork ? (
-          <div className="swing-anchor" style={{ top: `${anchorTop}px` }}>
-            <div className="swing-body" style={{ transform: `rotate(${(-angle * 180) / Math.PI}deg)` }}>
-              <HardwareStack
-                counterRotation={hardwareCounterRotation}
-                hardwareBottomPx={hardwareBottomPx}
-                hardwareHeight={hardwareHeight}
-                hardwareWidth={hardwareWidth}
-                partImage={renderedPart.image}
-                ringSize={ringSize}
-                variant="preview"
-              />
-
-              <div
-                className={`preview-artwork ${thicknessClass}`}
-                style={{ left: `${artworkLeft}px`, top: `${artworkTop}px`, width: `${artworkSize}px` }}
-              >
-                <span className="hole-shadow is-preview" style={{ left: `${holeX}px`, top: `${holeY}px` }} />
-                <img alt="アクキープレビュー" className="artwork-image" draggable={false} src={artwork.previewUrl} />
+          <>
+            <div className="preview-drag-hint">ドラッグして揺れを確認</div>
+            <div className="swing-anchor" style={{ top: `${anchorTop}px` }}>
+              <div className="swing-body" style={{ transform: `rotate(${(-angle * 180) / Math.PI}deg)` }}>
+                <HardwareStack
+                  counterRotation={hardwareCounterRotation}
+                  hardwareBottomPx={hardwareBottomPx}
+                  hardwareHeight={hardwareHeight}
+                  hardwareWidth={hardwareWidth}
+                  partImage={renderedPart.image}
+                  ringSize={ringSize}
+                  variant="preview"
+                />
+                <div
+                  className={`preview-artwork ${thicknessClass}`}
+                  style={{ left: `${artworkLeft}px`, top: `${artworkTop}px`, width: `${artworkSize}px` }}
+                >
+                  <span className="hole-shadow is-preview" style={{ left: `${holeX}px`, top: `${holeY}px` }} />
+                  <img alt="アクキープレビュー" className="artwork-image" draggable={false} src={artwork.previewUrl} />
+                </div>
               </div>
             </div>
-          </div>
+          </>
         ) : (
           <div className="empty-card large">
-            <strong>ここに完成イメージが出ます</strong>
-            <span>画像を追加すると、穴位置を反映した金具と丸カンの見え方を確認できます。</span>
+            <strong>ここにプレビューが表示されます</strong>
+            <span>画像を追加すると、金具と丸カンを重ねた完成見えを確認できます。</span>
           </div>
         )}
-      </div>
-
-      <div className="canvas-footer">
-        <p>ドラッグで揺れを確認</p>
-        <p>穴位置をそのまま反映</p>
       </div>
     </section>
   );
