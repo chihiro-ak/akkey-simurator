@@ -1,4 +1,5 @@
-import { jumpRingAsset, type PartOption } from "../keychainConfig";
+import type { PartOption } from "../keychainConfig";
+import { HardwareStack } from "./HardwareStack";
 import type { Artwork } from "../simulator";
 
 type Props = {
@@ -21,6 +22,7 @@ type Props = {
   previewRef: React.RefObject<HTMLDivElement | null>;
   renderedPart: PartOption;
   ringSize: number;
+  thicknessClass: string;
 };
 
 export function PreviewCanvas({
@@ -43,6 +45,7 @@ export function PreviewCanvas({
   previewRef,
   renderedPart,
   ringSize,
+  thicknessClass,
 }: Props) {
   return (
     <section className="canvas-card">
@@ -66,28 +69,20 @@ export function PreviewCanvas({
         {previewReady && artwork ? (
           <div className="swing-anchor" style={{ top: `${anchorTop}px` }}>
             <div className="swing-body" style={{ transform: `rotate(${(-angle * 180) / Math.PI}deg)` }}>
+              <HardwareStack
+                counterRotation={hardwareCounterRotation}
+                hardwareBottomPx={hardwareBottomPx}
+                hardwareHeight={hardwareHeight}
+                hardwareWidth={hardwareWidth}
+                partImage={renderedPart.image}
+                ringSize={ringSize}
+                variant="preview"
+              />
+
               <div
-                className="hardware-layer"
-                style={{
-                  width: `${hardwareWidth}px`,
-                  height: `${hardwareHeight}px`,
-                  transform: `translateX(-50%) rotate(${hardwareCounterRotation})`,
-                }}
+                className={`preview-artwork ${thicknessClass}`}
+                style={{ left: `${artworkLeft}px`, top: `${artworkTop}px`, width: `${artworkSize}px` }}
               >
-                <img alt="" className="hardware-image" draggable={false} src={renderedPart.image} />
-              </div>
-
-              <div className="ring-layer" style={{ top: `${hardwareBottomPx - ringSize * 0.22}px` }}>
-                <img
-                  alt=""
-                  className="ring-image"
-                  draggable={false}
-                  src={jumpRingAsset}
-                  style={{ width: `${ringSize}px`, height: `${ringSize}px` }}
-                />
-              </div>
-
-              <div className="preview-artwork" style={{ left: `${artworkLeft}px`, top: `${artworkTop}px`, width: `${artworkSize}px` }}>
                 <span className="hole-shadow is-preview" style={{ left: `${holeX}px`, top: `${holeY}px` }} />
                 <img alt="アクキー完成プレビュー" className="artwork-image" draggable={false} src={artwork.previewUrl} />
               </div>

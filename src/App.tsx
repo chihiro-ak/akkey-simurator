@@ -65,8 +65,8 @@ export default function App() {
   const hardwareWidth = hardwareSize;
   const hardwareHeight = hardwareSize;
   const hardwareBottomPx = hardwareHeight * ((partContour?.bottomOpaquePercent ?? 86) / 100);
-  const ringSize = Math.min(Math.max(hardwareSize * 0.24, 22), 32);
-  const anchorTop = viewportWidth >= 1200 ? 86 : viewportWidth >= 768 ? 76 : 64;
+  const ringSize = Math.min(Math.max(hardwareSize * 0.36, 34), 48);
+  const anchorTop = viewportWidth >= 1200 ? 120 : viewportWidth >= 768 ? 100 : 92;
   const physicsModel = useMemo(
     () =>
       getPreviewPhysicsModel(
@@ -98,6 +98,7 @@ export default function App() {
   const renderedAngle = viewMode === "edit" || dragging ? 0 : angle;
   const holeOffsetRatio = Math.min(1, Math.abs(holePosition - 50) / 32);
   const hardwareCounterRotation = `${((renderedAngle * 180) / Math.PI) * (0.34 + holeOffsetRatio * 0.44)}deg`;
+  const thicknessClass = `thickness-${thicknessMm}`;
 
   const handleUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -117,6 +118,12 @@ export default function App() {
 
   return (
     <main className="workspace-shell">
+      <header className="page-header">
+        <p className="section-label">Single Acrylic Keychain MVP</p>
+        <h1>アクキーシミュレーター</h1>
+        <p>Stitch モックに寄せながら、穴位置調整と完成見え確認を 1 画面で行える単体アクキー用の構成です。</p>
+      </header>
+
       <div className="workspace-grid">
         <SettingsSidebar
           artwork={artwork}
@@ -149,12 +156,18 @@ export default function App() {
               artworkSize={artworkSize}
               cardRef={cardRef}
               error={error}
+              hardwareBottomPx={hardwareBottomPx}
+              hardwareHeight={hardwareHeight}
+              hardwareWidth={hardwareWidth}
               holePositionLabel={holePositionLabel}
               holeX={holeX}
               holeY={holeY}
               onBeginHoleDrag={beginHoleDrag}
               onResetHole={handleResetHole}
+              partImage={activePart.image}
+              ringSize={ringSize}
               status={status}
+              thicknessClass={thicknessClass}
             />
           ) : (
             <PreviewCanvas
@@ -177,6 +190,7 @@ export default function App() {
               previewRef={previewRef}
               renderedPart={activePart}
               ringSize={ringSize}
+              thicknessClass={thicknessClass}
             />
           )}
 

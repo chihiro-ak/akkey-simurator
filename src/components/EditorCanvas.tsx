@@ -1,8 +1,12 @@
+import { HardwareStack } from "./HardwareStack";
 import type { Artwork, UploadStatus } from "../simulator";
 
 type Props = {
   artwork: Artwork | null;
   artworkSize: number;
+  hardwareBottomPx: number;
+  hardwareHeight: number;
+  hardwareWidth: number;
   cardRef: React.RefObject<HTMLDivElement | null>;
   error: string | null;
   holePositionLabel: string;
@@ -10,12 +14,18 @@ type Props = {
   holeY: number;
   onBeginHoleDrag: (event: React.PointerEvent<HTMLButtonElement>) => void;
   onResetHole: () => void;
+  partImage: string;
+  ringSize: number;
   status: UploadStatus;
+  thicknessClass: string;
 };
 
 export function EditorCanvas({
   artwork,
   artworkSize,
+  hardwareBottomPx,
+  hardwareHeight,
+  hardwareWidth,
   cardRef,
   error,
   holePositionLabel,
@@ -23,7 +33,10 @@ export function EditorCanvas({
   holeY,
   onBeginHoleDrag,
   onResetHole,
+  partImage,
+  ringSize,
   status,
+  thicknessClass,
 }: Props) {
   return (
     <section className="canvas-card">
@@ -40,12 +53,19 @@ export function EditorCanvas({
       <p className="canvas-note">安全エリアと穴マーカーを見ながら、接続位置だけを調整します。</p>
 
       <div className="editor-stage">
-        <div className="editor-guide">
-          <span className="editor-guide-top" />
-          <span className="editor-guide-ring" />
+        <div className="editor-hardware-wrap">
+          <HardwareStack
+            hardwareBottomPx={hardwareBottomPx}
+            hardwareHeight={hardwareHeight}
+            hardwareWidth={hardwareWidth}
+            muted
+            partImage={partImage}
+            ringSize={ringSize}
+            variant="editor"
+          />
         </div>
 
-        <div className="editor-artwork" ref={cardRef} style={{ width: `${artworkSize}px` }}>
+        <div className={`editor-artwork ${thicknessClass}`} ref={cardRef} style={{ width: `${artworkSize}px` }}>
           {artwork ? (
             <>
               <span className="safe-area-band" />
