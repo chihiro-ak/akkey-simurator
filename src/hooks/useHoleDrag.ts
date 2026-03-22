@@ -10,16 +10,40 @@ type Options = {
 
 export function useHoleDrag({ contour, onChange }: Options) {
   const cardRef = useRef<HTMLDivElement | null>(null);
-  const dragRef = useRef({ startClientX: 0, startPosition: 50, width: 1 });
   const [dragging, setDragging] = useState(false);
+
+  const projectPointerToHole = (clientX: number, clientY: number, rect: DOMRect) => {
+    const xPercent = ((clientX - rect.left) / rect.width) * 100;
+    if (!contour) return resolveHole(xPercent, contour);
+
+    const yPercent = ((clientY - rect.top) / rect.height) * 100;
+    const anchor = resolveHole(xPercent, contour);
+    let nearest = anchor;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    contour.topEdgeByPercent.forEach((edgeY, index) => {
+      if (edgeY === null) return;
+      if (Math.abs(index - anchor) > 12) return;
+      const dx = index - xPercent;
+      const dy = edgeY - yPercent;
+      const distance = dx * dx + dy * dy;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        nearest = index;
+      }
+    });
+
+    return resolveHole(nearest, contour);
+  };
 
   useEffect(() => {
     if (!dragging) return;
 
     const onMove = (event: PointerEvent) => {
-      const drag = dragRef.current;
-      const delta = ((event.clientX - drag.startClientX) / Math.max(drag.width, 1)) * 100 * 0.42;
-      onChange(resolveHole(drag.startPosition - delta, contour));
+      const card = cardRef.current;
+      if (!card) return;
+      const rect = card.getBoundingClientRect();
+      onChange(projectPointerToHole(event.clientX, event.clientY, rect));
     };
     const onUp = () => setDragging(false);
 
@@ -39,13 +63,7 @@ export function useHoleDrag({ contour, onChange }: Options) {
     if (!card) return;
 
     const rect = card.getBoundingClientRect();
-    const ratio = ((event.clientX - rect.left) / rect.width) * 100;
-    dragRef.current = {
-      startClientX: event.clientX,
-      startPosition: resolveHole(ratio, contour),
-      width: rect.width,
-    };
-    onChange(resolveHole(ratio, contour));
+    onChange(projectPointerToHole(event.clientX, event.clientY, rect));
     setDragging(true);
   };
 

@@ -18,13 +18,7 @@ import { useArtworkUpload } from "./hooks/useArtworkUpload";
 import { useHoleDrag } from "./hooks/useHoleDrag";
 import { usePartContour } from "./hooks/usePartContour";
 import { usePreviewMotion } from "./hooks/usePreviewMotion";
-import {
-  defaultHole,
-  getInsetHolePercent,
-  getPreviewPhysicsModel,
-  getVisibleArtworkSpanPercent,
-  resolveHole,
-} from "./simulator";
+import { defaultHole, getInsetHolePercent, getPreviewPhysicsModel, getVisibleArtworkSpanPercent, resolveHole } from "./simulator";
 
 export default function App() {
   const [selectedPart, setSelectedPart] = useState<PartId>("nasukan");
@@ -120,9 +114,8 @@ export default function App() {
     });
   };
 
-  const handleResetHole = () => setHolePosition(resolveHole(defaultHole, contour));
-  const holePositionLabel = `${Math.round(holePosition)}%`;
   const sizeLabel = `${(sizeCm * 10).toFixed(0)}mm`;
+  const handleResetHole = () => setHolePosition(resolveHole(defaultHole, contour));
 
   return (
     <>
@@ -175,20 +168,22 @@ export default function App() {
                 artwork={artwork}
                 artworkSize={artworkSize}
                 cardRef={cardRef}
-                error={error}
-                hardwareBottomPx={hardwareBottomPx}
-                hardwareHeight={hardwareHeight}
-                hardwareWidth={hardwareWidth}
-                holePositionLabel={holePositionLabel}
-                holeX={holeX}
-                holeY={holeY}
-                onBeginHoleDrag={beginHoleDrag}
-                onResetHole={handleResetHole}
-                partImage={activePart.image}
-                ringSize={ringSize}
-                status={status}
-                thicknessClass={thicknessClass}
-              />
+              error={error}
+              hardwareBottomPx={hardwareBottomPx}
+              hardwareHeight={hardwareHeight}
+              hardwareWidth={hardwareWidth}
+              holeX={holeX}
+              holeY={holeY}
+              onBeginHoleDrag={beginHoleDrag}
+              onResetHole={handleResetHole}
+              anchorTop={anchorTop}
+              artworkLeft={artworkLeft}
+              partImage={activePart.image}
+              ringSize={ringSize}
+              status={status}
+              artworkTop={artworkTop}
+              thicknessClass={thicknessClass}
+            />
             ) : (
               <PreviewCanvas
                 angle={angle}

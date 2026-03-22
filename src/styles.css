@@ -322,21 +322,10 @@ img {
   letter-spacing: 0.08em;
 }
 
-.edit-hardware-anchor {
-  position: absolute;
-  top: 84px;
-  left: 50%;
-  transform: translateX(-50%);
-}
-
 .editor-artwork,
 .preview-artwork {
   position: relative;
   aspect-ratio: 1;
-}
-
-.editor-artwork {
-  margin-top: 126px;
 }
 
 .preview-drag-hint {
@@ -385,6 +374,18 @@ img {
   border-radius: 28px;
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.4), rgba(255, 255, 255, 0) 50%, rgba(255, 255, 255, 0.1));
   z-index: 0;
+}
+
+.editor-artwork::after,
+.preview-artwork::after {
+  content: "";
+  position: absolute;
+  inset: 4px 4px -4px 4px;
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.4);
+  z-index: 0;
+  transform: translate(2px, 2px);
+  opacity: 0.4;
 }
 
 .hole-shadow {
@@ -486,7 +487,8 @@ img {
 }
 
 .hardware-stack.is-editor {
-  opacity: 0.62;
+  opacity: 0.94;
+  filter: drop-shadow(0 8px 12px rgba(105, 85, 106, 0.14));
 }
 
 .hardware-stack.is-preview {
@@ -510,6 +512,16 @@ img {
   z-index: 2;
 }
 
+.ring-cap {
+  position: absolute;
+  top: -6px;
+  width: 10px;
+  height: 12px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(154, 161, 173, 0.96), rgba(224, 228, 234, 0.96));
+  box-shadow: 0 2px 4px rgba(105, 85, 106, 0.08);
+}
+
 .ring-image {
   object-fit: contain;
   filter: drop-shadow(0 4px 8px rgba(148, 163, 184, 0.24)) brightness(0.9) contrast(1.1);
@@ -523,6 +535,11 @@ img {
   filter: drop-shadow(0 6px 12px rgba(148, 163, 184, 0.14));
 }
 
+.thickness-3::after {
+  transform: translate(1px, 1px);
+  opacity: 0.18;
+}
+
 .thickness-5 .artwork-image {
   filter: drop-shadow(0 8px 16px rgba(148, 163, 184, 0.18)) saturate(1.02);
 }
@@ -532,6 +549,11 @@ img {
   opacity: 0.78;
 }
 
+.thickness-5::after {
+  transform: translate(3px, 3px);
+  opacity: 0.28;
+}
+
 .thickness-8 .artwork-image {
   filter: drop-shadow(0 10px 20px rgba(148, 163, 184, 0.24)) saturate(1.04);
 }
@@ -539,6 +561,11 @@ img {
 .thickness-8::before {
   transform: translate(5px, 4px);
   opacity: 0.92;
+}
+
+.thickness-8::after {
+  transform: translate(5px, 4px);
+  opacity: 0.38;
 }
 
 @media (max-width: 720px) {

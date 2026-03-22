@@ -45,6 +45,7 @@ export function HardwareStack({
       />
 
       <div className="ring-layer" style={{ top: `${hardwareBottomPx + ringSize * 0.08}px` }}>
+        <span className="ring-cap" />
         <img
           alt=""
           className="ring-image"

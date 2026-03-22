@@ -4,14 +4,16 @@ import { HardwareStack } from "./HardwareStack";
 import type { Artwork, UploadStatus } from "../simulator";
 
 type Props = {
+  anchorTop: number;
   artwork: Artwork | null;
+  artworkLeft: number;
   artworkSize: number;
+  artworkTop: number;
   hardwareBottomPx: number;
   hardwareHeight: number;
   hardwareWidth: number;
   cardRef: RefObject<HTMLDivElement | null>;
   error: string | null;
-  holePositionLabel: string;
   holeX: number;
   holeY: number;
   onBeginHoleDrag: (event: PointerEvent<HTMLButtonElement>) => void;
@@ -23,14 +25,16 @@ type Props = {
 };
 
 export function EditorCanvas({
+  anchorTop,
   artwork,
+  artworkLeft,
   artworkSize,
+  artworkTop,
   hardwareBottomPx,
   hardwareHeight,
   hardwareWidth,
   cardRef,
   error,
-  holePositionLabel,
   holeX,
   holeY,
   onBeginHoleDrag,
@@ -50,30 +54,34 @@ export function EditorCanvas({
                 <span>安全エリア</span>
               </div>
             </div>
-            <div className="edit-hardware-anchor">
-              <HardwareStack
-                hardwareBottomPx={hardwareBottomPx}
-                hardwareHeight={hardwareHeight}
-                hardwareWidth={hardwareWidth}
-                muted
-                partImage={partImage}
-                ringSize={ringSize}
-                variant="editor"
-              />
+            <div className="swing-anchor" style={{ top: `${anchorTop}px` }}>
+              <div className="swing-body">
+                <HardwareStack
+                  hardwareBottomPx={hardwareBottomPx}
+                  hardwareHeight={hardwareHeight}
+                  hardwareWidth={hardwareWidth}
+                  partImage={partImage}
+                  ringSize={ringSize}
+                  variant="editor"
+                />
+                <div
+                  className={`editor-artwork ${thicknessClass}`}
+                  ref={cardRef}
+                  style={{ left: `${artworkLeft}px`, top: `${artworkTop}px`, width: `${artworkSize}px` }}
+                >
+                  <span className="hole-shadow" style={{ left: `${holeX}px`, top: `${holeY}px` }} />
+                  <button
+                    aria-label="穴位置を調整"
+                    className="hole-handle"
+                    onDoubleClick={onResetHole}
+                    onPointerDown={onBeginHoleDrag}
+                    style={{ left: `${holeX}px`, top: `${holeY}px` }}
+                    type="button"
+                  />
+                  <img alt="アップロード画像" className="artwork-image" draggable={false} src={artwork.previewUrl} />
+                </div>
+              </div>
             </div>
-            <div className={`editor-artwork ${thicknessClass}`} ref={cardRef} style={{ width: `${artworkSize}px` }}>
-              <span className="hole-shadow" style={{ left: `${holeX}px`, top: `${holeY}px` }} />
-              <button
-                aria-label="穴位置を調整"
-                className="hole-handle"
-                onDoubleClick={onResetHole}
-                onPointerDown={onBeginHoleDrag}
-                style={{ left: `${holeX}px`, top: `${holeY}px` }}
-                type="button"
-              />
-              <img alt="アップロード画像" className="artwork-image" draggable={false} src={artwork.previewUrl} />
-            </div>
-            <div className="canvas-caption">{holePositionLabel}</div>
           </>
         ) : (
           <div className={`empty-card is-${status}`}>
