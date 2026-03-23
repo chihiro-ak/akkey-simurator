@@ -33,16 +33,25 @@ import {
   resolveHoleNormalized,
 } from "./simulator";
 
+type DragSurface = "editor" | "preview";
+
 type DragState =
   | {
-      startHoles: {
-        link?: number;
-        primary: number;
-      };
       startClientX: number;
+      startValue: number;
+      surface: DragSurface;
       type: "artwork";
       width: number;
       slot: SlotId;
+    }
+  | {
+      hole: HoleKind;
+      startClientX?: number;
+      startValue?: number;
+      slot: SlotId;
+      surface: DragSurface;
+      type: "hole";
+      width?: number;
     }
   | null;
 
@@ -69,6 +78,8 @@ export default function App() {
   const uploads = { main: mainUpload, sub: subUpload } as const;
   const mainCardRef = useRef<HTMLDivElement | null>(null);
   const subCardRef = useRef<HTMLDivElement | null>(null);
+  const mainPreviewCardRef = useRef<HTMLDivElement | null>(null);
+  const subPreviewCardRef = useRef<HTMLDivElement | null>(null);
 
   const activePart = useMemo(() => partOptions.find((part) => part.id === selectedPart) ?? partOptions[0], [selectedPart]);
   const partContour = usePartContour(activePart.image, true);
@@ -127,7 +138,7 @@ export default function App() {
   const hardwareHeight = hardwareSize;
   const hardwareBottomPx = hardwareHeight * ((partContour?.bottomOpaquePercent ?? 86) / 100);
   const ringSize = Math.min(Math.max(hardwareSize * 0.36, 34), 48);
-  const anchorTop = viewportWidth >= 1200 ? 124 : viewportWidth >= 768 ? 102 : 92;
+  const anchorTop = viewportWidth >= 1200 ? 108 : viewportWidth >= 768 ? 88 : 80;
   const linkLength = viewportWidth >= 1200 ? 14 : viewportWidth >= 768 ? 12 : 9;
   const linkedAttachment = useMemo(
     () =>
@@ -174,15 +185,13 @@ export default function App() {
 
   const mainCardLeft = physicsModel.cardCenterLocalX * mainSize - mainSize / 2;
   const mainCardTop = -physicsModel.cardCenterLocalY * mainSize - mainSize / 2;
-  const lowerComX = (subSize * (subUpload.contour?.centerOfMassXPercent ?? 50)) / 100;
-  const lowerComY = (subSize * (subUpload.contour?.centerOfMassYPercent ?? 58)) / 100;
-  const lowerCardLeft = -lowerComX;
-  const lowerCardTop = -lowerComY;
-  const lowerHoleOffsetLocalX = subPrimaryHole.xPx - lowerComX;
-  const lowerHoleOffsetLocalY = lowerComY - subPrimaryHole.yPx;
-  const lowerCenterRadius = Math.max(1, Math.hypot(lowerHoleOffsetLocalX, lowerHoleOffsetLocalY));
-  const lowerBaseAngle = Math.PI / 2 - Math.atan2(lowerHoleOffsetLocalY, lowerHoleOffsetLocalX);
+  const lowerCardLeft = -subPrimaryHole.xPx;
+  const lowerCardTop = -subPrimaryHole.yPx;
+  const lowerCenterRadius = 0;
+  const lowerBaseAngle = 0;
   const lowerEquilibrium = ((subPrimaryHole.xPercent - 50) / 100) * 0.14;
+  const linkAnchorX = mainCardLeft + mainLinkHole.xPx;
+  const linkAnchorY = mainCardTop + mainLinkHole.yPx;
 
   const { angle, beginPreviewDrag, endPreviewDrag, movePreviewDrag, previewRef, subSwingAngle, subTiltAngle } =
     useConnectedPreviewMotion({
@@ -202,30 +211,95 @@ export default function App() {
   const hardwareUprightFactor = 0.34 + holeOffsetRatio * 0.44;
   const hardwareCounterRotation = `${((renderedAngle * 180) / Math.PI) * hardwareUprightFactor}deg`;
 
-  const getCardRef = (slot: SlotId) => (slot === "main" ? mainCardRef : subCardRef);
+  const getCardRef = (slot: SlotId, surface: DragSurface) => {
+    if (surface === "preview") {
+      return slot === "main" ? mainPreviewCardRef : subPreviewCardRef;
+    }
+    return slot === "main" ? mainCardRef : subCardRef;
+  };
+
+  const projectPointerToHole = (slot: SlotId, hole: HoleKind, surface: DragSurface, clientX: number, clientY: number) => {
+    const card = getCardRef(slot, surface).current;
+    const contour = uploads[slot].contour;
+    const edge = getHoleEdge(slot, hole);
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    const xPercent = ((clientX - rect.left) / rect.width) * 100;
+    if (!contour) {
+      const resolved = resolveHole(xPercent, contour, edge);
+      return percentToNormalized(resolved);
+    }
+
+    const yPercent = ((clientY - rect.top) / rect.height) * 100;
+    const edgePoints = edge === "bottom" ? contour.bottomEdgeByPercent : contour.topEdgeByPercent;
+    const anchor = resolveHole(xPercent, contour, edge);
+    let nearest = anchor;
+    let bestDistance = Number.POSITIVE_INFINITY;
+
+    edgePoints.forEach((edgeY, index) => {
+      if (edgeY === null) return;
+      if (Math.abs(index - anchor) > 12) return;
+      const dx = index - xPercent;
+      const dy = edgeY - yPercent;
+      const distance = dx * dx + dy * dy;
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        nearest = index;
+      }
+    });
+
+    return percentToNormalized(resolveHole(nearest, contour, edge));
+  };
 
   useEffect(() => {
     if (!dragState) return;
 
     const onMove = (event: PointerEvent) => {
-      const contour = uploads[dragState.slot].contour;
-      const delta = (event.clientX - dragState.startClientX) / Math.max(dragState.width, 1);
-      const shift = delta * ARTWORK_DRAG_SCALE;
-      const resolveWithShift = (hole: HoleKind, startValue: number) =>
-        resolveHoleNormalized(startValue - shift, contour, getHoleEdge(dragState.slot, hole));
+      if (dragState.type === "artwork") {
+        const contour = uploads[dragState.slot].contour;
+        const delta = (event.clientX - dragState.startClientX) / Math.max(dragState.width, 1);
+        const target = dragState.startValue - delta * ARTWORK_DRAG_SCALE;
+        const resolved = resolveHoleNormalized(target, contour, "top");
+        setSlotHoles((current) => ({
+          ...current,
+          [dragState.slot]: {
+            ...current[dragState.slot],
+            primary: dragState.startValue + (resolved - dragState.startValue) * 0.75,
+          },
+        }));
+        return;
+      }
 
+      if (
+        dragState.hole === "link" &&
+        dragState.slot === "main" &&
+        dragState.startClientX !== undefined &&
+        dragState.startValue !== undefined &&
+        dragState.width !== undefined
+      ) {
+        const startValue = dragState.startValue;
+        const delta = (event.clientX - dragState.startClientX) / Math.max(dragState.width, 1);
+        const target = startValue + delta * ARTWORK_DRAG_SCALE;
+        const resolved = resolveHoleNormalized(target, uploads.main.contour, "bottom");
+        setSlotHoles((current) => ({
+          ...current,
+          main: {
+            ...current.main,
+            link: startValue + (resolved - startValue) * 0.75,
+            primary: current.main.primary,
+          },
+        }));
+        return;
+      }
+
+      const nextValue = projectPointerToHole(dragState.slot, dragState.hole, dragState.surface, event.clientX, event.clientY);
+      if (nextValue === undefined) return;
       setSlotHoles((current) => ({
         ...current,
         [dragState.slot]: {
           ...current[dragState.slot],
-          ...(dragState.slot === "main"
-            ? {
-                link: resolveWithShift("link", dragState.startHoles.link ?? current.main.link),
-                primary: resolveWithShift("primary", dragState.startHoles.primary),
-              }
-            : {
-                primary: resolveWithShift("primary", dragState.startHoles.primary),
-              }),
+          [dragState.hole]: nextValue,
         },
       }));
     };
@@ -239,18 +313,47 @@ export default function App() {
     };
   }, [dragState, mainUpload.contour, subUpload.contour]);
 
-  const beginArtworkDrag = (slot: SlotId, event: ReactPointerEvent<HTMLElement>) => {
+  const beginHoleDrag = (slot: SlotId, hole: HoleKind, surface: DragSurface, event: ReactPointerEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
-    const card = getCardRef(slot).current;
+    setActiveSlot(slot);
+    endPreviewDrag();
+    const card = getCardRef(slot, surface).current;
+    const rect = card?.getBoundingClientRect();
+    const nextValue = projectPointerToHole(slot, hole, surface, event.clientX, event.clientY);
+    if (nextValue !== undefined) {
+      setSlotHoles((current) => ({
+        ...current,
+        [slot]: {
+          ...current[slot],
+          [hole]: nextValue,
+        },
+      }));
+    }
+    setDragState({
+      hole,
+      slot,
+      surface,
+      startClientX: hole === "link" ? event.clientX : undefined,
+      startValue: hole === "link" ? slotHoles.main.link : undefined,
+      type: "hole",
+      width: hole === "link" ? rect?.width : undefined,
+    });
+  };
+
+  const beginArtworkDrag = (slot: SlotId, surface: DragSurface, event: ReactPointerEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const card = getCardRef(slot, surface).current;
     if (!card) return;
     const rect = card.getBoundingClientRect();
     setActiveSlot(slot);
     endPreviewDrag();
     setDragState({
       slot,
-      startHoles: { ...slotHoles[slot] },
       startClientX: event.clientX,
+      startValue: slotHoles[slot].primary,
+      surface,
       type: "artwork",
       width: rect.width,
     });
@@ -361,8 +464,8 @@ export default function App() {
                 hardwareBottomPx={hardwareBottomPx}
                 hardwareHeight={hardwareHeight}
                 hardwareWidth={hardwareWidth}
-                linkAnchorX={mainLinkHole.xPx}
-                linkAnchorY={mainLinkHole.yPx}
+                linkAnchorX={linkAnchorX}
+                linkAnchorY={linkAnchorY}
                 linkHole={mainLinkHole}
                 linkLength={linkLength}
                 lowerBaseAngle={lowerBaseAngle}
@@ -391,6 +494,7 @@ export default function App() {
                 }}
                 onActivateSlot={setActiveSlot}
                 onBeginArtworkDrag={beginArtworkDrag}
+                onBeginHoleDrag={beginHoleDrag}
                 partImage={activePart.image}
                 ringSize={ringSize}
               />
@@ -403,8 +507,8 @@ export default function App() {
                 hardwareCounterRotation={hardwareCounterRotation}
                 hardwareHeight={hardwareHeight}
                 hardwareWidth={hardwareWidth}
-                linkAnchorX={mainLinkHole.xPx}
-                linkAnchorY={mainLinkHole.yPx}
+                linkAnchorX={linkAnchorX}
+                linkAnchorY={linkAnchorY}
                 linkHole={mainLinkHole}
                 linkLength={linkLength}
                 lowerBaseAngle={lowerBaseAngle}
@@ -412,6 +516,7 @@ export default function App() {
                   artwork: subUpload.artwork,
                   left: lowerCardLeft,
                   primaryHole: subPrimaryHole,
+                  cardRef: subPreviewCardRef,
                   size: subSize,
                   top: lowerCardTop,
                 }}
@@ -420,9 +525,11 @@ export default function App() {
                   artwork: mainUpload.artwork,
                   left: mainCardLeft,
                   primaryHole: mainPrimaryHole,
+                  cardRef: mainPreviewCardRef,
                   size: mainSize,
                   top: mainCardTop,
                 }}
+                onBeginLinkDrag={(event) => beginHoleDrag("main", "link", "preview", event)}
                 onEndPreviewDrag={endPreviewDrag}
                 onMovePreviewDrag={movePreviewDrag}
                 onPreviewDrag={beginPreviewDrag}

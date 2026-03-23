@@ -31,7 +31,8 @@ type Props = {
   lowerCenterRadius: number;
   mainCard: CardVisual;
   onActivateSlot: (slot: SlotId) => void;
-  onBeginArtworkDrag: (slot: SlotId, event: PointerEvent<HTMLElement>) => void;
+  onBeginArtworkDrag: (slot: SlotId, surface: "editor" | "preview", event: PointerEvent<HTMLElement>) => void;
+  onBeginHoleDrag: (slot: SlotId, hole: "primary" | "link", surface: "editor" | "preview", event: PointerEvent<HTMLElement>) => void;
   partImage: string;
   ringSize: number;
 };
@@ -62,6 +63,7 @@ export function EditorCanvas({
   mainCard,
   onActivateSlot,
   onBeginArtworkDrag,
+  onBeginHoleDrag,
   partImage,
   ringSize,
 }: Props) {
@@ -74,7 +76,7 @@ export function EditorCanvas({
       <div className="canvas-frame">
         {mainCard.artwork ? (
           <>
-            <div className="canvas-caption">画像をドラッグして接合位置を調整できます</div>
+            <div className="canvas-caption">画像をドラッグして穴位置を調整できます</div>
             <div className="swing-anchor" style={{ top: `${anchorTop}px` }}>
               <div className="swing-body">
                 <HardwareStack
@@ -90,7 +92,7 @@ export function EditorCanvas({
                   onClick={() => onActivateSlot("main")}
                   onPointerDown={(event) => {
                     onActivateSlot("main");
-                    onBeginArtworkDrag("main", event);
+                    onBeginArtworkDrag("main", "editor", event);
                   }}
                   ref={mainCard.cardRef}
                   style={{ left: `${mainCard.left}px`, top: `${mainCard.top}px`, width: `${mainCard.size}px` }}
@@ -99,18 +101,17 @@ export function EditorCanvas({
                     className={`hole-shadow ${mainPrimaryActive ? "is-active" : "is-muted"}`}
                     style={{ left: `${mainCard.primaryHole.xPx}px`, top: `${mainCard.primaryHole.yPx}px` }}
                   />
-                  {connected ? (
-                    <span
-                      className={`hole-shadow is-link-point ${mainLinkActive ? "is-active" : "is-muted"}`}
-                      style={{ left: `${linkHole.xPx}px`, top: `${linkHole.yPx}px` }}
-                    />
-                  ) : null}
                   <img alt="アップロード画像" className="artwork-image" draggable={false} src={mainCard.artwork.previewUrl} />
                 </div>
 
                 {connected ? (
                   <div className="linked-anchor is-ready" style={{ left: `${linkAnchorX}px`, top: `${linkAnchorY}px` }}>
-                    <span className="linked-anchor-ring" />
+                    <button
+                      aria-label="連結位置を調整"
+                      className={`linked-anchor-ring linked-anchor-button ${mainLinkActive ? "is-active" : "is-muted"}`}
+                      onPointerDown={(event) => onBeginHoleDrag("main", "link", "editor", event)}
+                      type="button"
+                    />
                     <div className="linked-swing-group">
                       <span className="linked-anchor-chain" style={{ height: `${linkLength}px` }} />
                       <div
@@ -122,7 +123,7 @@ export function EditorCanvas({
                           onClick={() => onActivateSlot("sub")}
                           onPointerDown={(event) => {
                             onActivateSlot("sub");
-                            onBeginArtworkDrag("sub", event);
+                            onBeginArtworkDrag("sub", "editor", event);
                           }}
                           ref={lowerCard.cardRef}
                           style={{ left: `${lowerCard.left}px`, top: `${lowerCard.top}px`, width: `${lowerCard.size}px` }}

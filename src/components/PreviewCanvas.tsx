@@ -6,6 +6,7 @@ import { HardwareStack } from "./HardwareStack";
 
 type CardVisual = {
   artwork: Artwork | null;
+  cardRef: RefObject<HTMLDivElement | null>;
   left: number;
   primaryHole: HoleLayout;
   size: number;
@@ -28,6 +29,7 @@ type Props = {
   lowerCard: CardVisual;
   lowerCenterRadius: number;
   mainCard: CardVisual;
+  onBeginLinkDrag: (event: PointerEvent<HTMLElement>) => void;
   onEndPreviewDrag: (pointerId?: number) => void;
   onMovePreviewDrag: (event: PointerEvent<HTMLDivElement>) => void;
   onPreviewDrag: (event: PointerEvent<HTMLDivElement>) => void;
@@ -55,6 +57,7 @@ export function PreviewCanvas({
   lowerCard,
   lowerCenterRadius,
   mainCard,
+  onBeginLinkDrag,
   onEndPreviewDrag,
   onMovePreviewDrag,
   onPreviewDrag,
@@ -91,14 +94,18 @@ export function PreviewCanvas({
                 />
                 <div
                   className="preview-artwork"
+                  ref={mainCard.cardRef}
                   style={{ left: `${mainCard.left}px`, top: `${mainCard.top}px`, width: `${mainCard.size}px` }}
                 >
                   <span className="acrylic-back-layer" />
                   <span className="acrylic-side-band" />
                   <span className="acrylic-side-glow" />
-                  <span className="hole-shadow is-preview" style={{ left: `${mainCard.primaryHole.xPx}px`, top: `${mainCard.primaryHole.yPx}px` }} />
+                  <span
+                    className="hole-shadow is-preview is-subtle is-metal-preview is-hardware-link"
+                    style={{ left: `${mainCard.primaryHole.xPx}px`, top: `${mainCard.primaryHole.yPx}px` }}
+                  />
                   {connected ? (
-                    <span className="hole-shadow is-preview is-link-point" style={{ left: `${linkHole.xPx}px`, top: `${linkHole.yPx}px` }} />
+                    <span className="hole-shadow is-preview is-link-point is-subtle is-metal-preview" style={{ left: `${linkHole.xPx}px`, top: `${linkHole.yPx}px` }} />
                   ) : null}
                   <img alt="プレビュー画像" className="artwork-image" draggable={false} src={mainCard.artwork.previewUrl} />
                   <span className="acrylic-front-gloss" />
@@ -107,7 +114,12 @@ export function PreviewCanvas({
 
                 {connected ? (
                   <div className="linked-anchor is-ready" style={{ left: `${linkAnchorX}px`, top: `${linkAnchorY}px` }}>
-                    <span className="linked-anchor-ring" />
+                    <button
+                      aria-label="連結位置を調整"
+                      className="linked-anchor-ring linked-anchor-button is-preview-subtle is-metal-preview"
+                      onPointerDown={onBeginLinkDrag}
+                      type="button"
+                    />
                     <div className="linked-swing-group" style={{ transform: `rotate(${(-subSwingAngle * 180) / Math.PI}deg)` }}>
                       <span className="linked-anchor-chain" style={{ height: `${linkLength}px` }} />
                       <div
@@ -118,12 +130,13 @@ export function PreviewCanvas({
                       >
                         <div
                           className="preview-artwork linked-card"
+                          ref={lowerCard.cardRef}
                           style={{ left: `${lowerCard.left}px`, top: `${lowerCard.top}px`, width: `${lowerCard.size}px` }}
                         >
                           <span className="acrylic-back-layer" />
                           <span className="acrylic-side-band" />
                           <span className="acrylic-side-glow" />
-                          <span className="hole-shadow is-preview is-secondary" style={{ left: `${lowerCard.primaryHole.xPx}px`, top: `${lowerCard.primaryHole.yPx}px` }} />
+                          <span className="hole-shadow is-preview is-secondary is-subtle is-metal-preview" style={{ left: `${lowerCard.primaryHole.xPx}px`, top: `${lowerCard.primaryHole.yPx}px` }} />
                           {lowerCard.artwork ? (
                             <>
                               <img alt="つながるプレビュー画像" className="artwork-image" draggable={false} src={lowerCard.artwork.previewUrl} />
@@ -132,7 +145,7 @@ export function PreviewCanvas({
                             </>
                           ) : (
                             <div className="artwork-placeholder is-empty is-secondary">
-                              <strong>もうひとつ追加すると、つながる見えになります</strong>
+                              <strong>画像をアップロードしてください</strong>
                             </div>
                           )}
                         </div>
