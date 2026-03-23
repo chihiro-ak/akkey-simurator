@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 
 import { analyzeContour, isSupportedFile, readFile, type Artwork, type Contour, type UploadStatus } from "../simulator";
 
-export function useArtworkUpload() {
-  const [artwork, setArtwork] = useState<Artwork | null>(null);
-  const [status, setStatus] = useState<UploadStatus>("empty");
+export function useArtworkUpload(initialArtwork: Artwork | null = null) {
+  const [artwork, setArtwork] = useState<Artwork | null>(initialArtwork);
+  const [status, setStatus] = useState<UploadStatus>(initialArtwork ? "ready" : "empty");
   const [error, setError] = useState<string | null>(null);
   const [contour, setContour] = useState<Contour | null>(null);
 

@@ -16,6 +16,7 @@ type CardVisual = {
 
 type Props = {
   angle: number;
+  allowLinkAdjust?: boolean;
   anchorTop: number;
   connected: boolean;
   hardwareBottomPx: number;
@@ -43,6 +44,7 @@ type Props = {
 
 export function PreviewCanvas({
   angle,
+  allowLinkAdjust = true,
   anchorTop,
   connected,
   hardwareBottomPx,
@@ -110,9 +112,13 @@ export function PreviewCanvas({
 
                 {connected ? (
                   <div className="linked-anchor is-ready" style={{ left: `${linkAnchorX}px`, top: `${linkAnchorY}px` }}>
-                    <button aria-label="連結位置を調整" className="preview-middle-link-bar" onPointerDown={onBeginLinkDrag} type="button">
-                      <span className="preview-middle-link-core" />
-                    </button>
+                    {allowLinkAdjust ? (
+                      <button aria-label="連結位置を調整" className="preview-middle-link-bar" onPointerDown={onBeginLinkDrag} type="button">
+                        <span className="preview-middle-link-core" />
+                      </button>
+                    ) : (
+                      <span aria-hidden="true" className="preview-middle-link-core" />
+                    )}
                     <div className="linked-swing-group" style={{ transform: `rotate(${(-subSwingAngle * 180) / Math.PI}deg)` }}>
                       <span className="linked-anchor-chain is-preview-hardware" style={{ height: `${linkLength}px` }} />
                       <div
