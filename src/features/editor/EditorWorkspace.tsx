@@ -476,38 +476,28 @@ export function EditorWorkspace({ initialDraft }: Props) {
       <header className="topbar">
         <div className="topbar-inner topbar-editor">
           <div className="topbar-copy">
-            <p className="eyebrow">Project Workspace</p>
             <h1>アクキーシミュレーター</h1>
+            <p className="page-subtitle">保存しながら編集を続けられます。</p>
           </div>
-          <div className="topbar-actions">
+          <div className="topbar-actions editor-actions">
             <Link className="ghost-link" to="/projects">
-              プロジェクト一覧へ戻る
+              一覧
             </Link>
-            <button
-              className="ghost-button"
-              onClick={() => {
-                titleInputRef.current?.focus();
-                titleInputRef.current?.select();
-              }}
-              type="button"
-            >
-              名前変更
-            </button>
             <button className="ghost-button" onClick={() => setIsPublishPanelOpen((current) => !current)} type="button">
-              公開設定を開く
+              公開設定
             </button>
             <Link className={`ghost-button ${draft.isPublic ? "" : "is-disabled"}`} to={shareHref}>
-              公開ページを開く
+              公開ページ
             </Link>
             <button className="primary-button" onClick={handleSave} type="button">
-              {hasSavedOnce ? "上書き保存" : "初回保存"}
+              {hasSavedOnce ? "保存" : "初回保存"}
             </button>
           </div>
         </div>
       </header>
 
       <main className="workspace-shell editor-shell">
-        <section className="project-toolbar-card">
+        <section className="project-toolbar-card project-toolbar-card-compact">
           <div className="project-toolbar-main">
             <label className="project-title-field">
               <span className="field-label">プロジェクト名</span>
@@ -526,13 +516,22 @@ export function EditorWorkspace({ initialDraft }: Props) {
             </label>
             <div className="project-meta-row">
               <span className={`status-pill ${draft.isPublic ? "is-public" : ""}`}>{draft.isPublic ? "公開中" : "下書き"}</span>
-              <span className="meta-note">保存先を意識した仮 UI。今はローカル状態のみ更新します。</span>
+              <button
+                className="text-link-button"
+                onClick={() => {
+                  titleInputRef.current?.focus();
+                  titleInputRef.current?.select();
+                }}
+                type="button"
+              >
+                名前を変更
+              </button>
             </div>
           </div>
           <div className="project-toolbar-side">
             <div className="project-meta-card">
-              <span className="field-label">共有スラッグ</span>
-              <strong>{draft.shareSlug}</strong>
+              <span className="field-label">保存状態</span>
+              <strong>{hasSavedOnce ? "保存済み" : "未保存"}</strong>
               <span>最終保存: {formatSavedAt(savedAt)}</span>
             </div>
           </div>
@@ -667,8 +666,7 @@ export function EditorWorkspace({ initialDraft }: Props) {
           <div className="side-panel-card">
             <div className="side-panel-header">
               <div>
-                <p className="eyebrow">Publish</p>
-                <h2>保存 / 公開設定</h2>
+                <h2>公開設定</h2>
               </div>
               <button className="ghost-button" onClick={() => setIsPublishPanelOpen(false)} type="button">
                 閉じる
@@ -686,8 +684,8 @@ export function EditorWorkspace({ initialDraft }: Props) {
 
             <div className="panel-toggle-row">
               <div>
-                <strong>{draft.isPublic ? "公開ページを有効化" : "非公開のまま保存"}</strong>
-                <span>あとから Supabase に接続しても差し替えしやすい配置です。</span>
+                <strong>{draft.isPublic ? "公開ページを表示中" : "非公開のまま保存"}</strong>
+                <span>保存と公開状態だけを先に確認できる仮UIです。</span>
               </div>
               <button
                 className={`toggle-chip ${draft.isPublic ? "is-active" : ""}`}

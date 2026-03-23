@@ -6,26 +6,21 @@ export function LoginPage() {
       <header className="topbar">
         <div className="topbar-inner page-topbar">
           <div className="topbar-copy">
-            <p className="eyebrow">Welcome Back</p>
-            <h1>アクキーシミュレーター</h1>
+            <h1>ログイン</h1>
+            <p className="page-subtitle">保存機能に備えた仮画面です。</p>
           </div>
           <Link className="ghost-link" to="/projects">
-            ダミー一覧へ進む
+            一覧へ戻る
           </Link>
         </div>
       </header>
 
       <main className="page-shell auth-shell">
-        <section className="hero-card auth-card">
-          <div className="hero-copy">
-            <p className="eyebrow">Login</p>
-            <h2>保存・公開の準備をここから</h2>
-            <p>
-              認証自体はまだ仮実装ですが、メールログインと Google ログインを置ける余白を先に整えています。
-              今の編集 UI と同じ、やわらかなアトリエ調のトーンで揃えています。
-            </p>
+        <section className="login-card">
+          <div className="login-copy">
+            <h2>ログイン方法を選択</h2>
+            <p>本実装前のため、ここでは見た目だけを用意しています。</p>
           </div>
-
           <div className="auth-actions">
             <button className="primary-button wide-button" type="button">
               メールでログイン
@@ -33,10 +28,6 @@ export function LoginPage() {
             <button className="secondary-button wide-button" type="button">
               Google でログイン
             </button>
-            <div className="inline-note-card">
-              <strong>仮状態のメモ</strong>
-              <span>本接続前でも導線確認ができるよう、この画面から `/projects` へ進めます。</span>
-            </div>
           </div>
         </section>
       </main>

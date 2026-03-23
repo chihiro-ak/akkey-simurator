@@ -127,37 +127,25 @@ export function SharePage() {
       <header className="topbar">
         <div className="topbar-inner page-topbar">
           <div className="topbar-copy">
-            <p className="eyebrow">Shared Preview</p>
             <h1>{draft.title}</h1>
+            <p className="page-subtitle">{draft.mode === "connected" ? "2連アクキー" : "単体アクキー"} の閲覧ページ</p>
           </div>
           <div className="topbar-actions compact">
             <span className="status-pill is-public">公開中</span>
             <Link className="ghost-link" to="/projects">
               一覧へ戻る
             </Link>
-            <Link className="ghost-link" to={`/editor/${draft.id ?? "new"}`}>
-              編集へ戻る
-            </Link>
           </div>
         </div>
       </header>
 
       <main className="page-shell share-shell">
-        <section className="hero-card share-hero">
-          <div className="hero-copy">
-            <p className="eyebrow">Preview Only</p>
-            <h2>完成イメージをシンプルに共有</h2>
-            <p>編集 UI は外し、揺れ確認エリアを主役にした公開プレビューです。SNS 共有やお品書き導線を後から載せやすい余白を確保しています。</p>
-          </div>
-          <div className="hero-side-card">
-            <span className="field-label">共有URL</span>
+        <section className="share-stage">
+          <div className="share-meta">
+            <span className="field-label">公開URL</span>
             <strong>/share/{draft.shareSlug}</strong>
-            <span>{draft.mode === "connected" ? "2連アクキー" : "単体アクキー"} の表示に対応しています。</span>
           </div>
-        </section>
-
-        <section className="share-preview-grid">
-          <div className="canvas-column">
+          <div className="canvas-column share-canvas-column">
             <PreviewCanvas
               angle={angle}
               allowLinkAdjust={false}
@@ -200,17 +188,13 @@ export function SharePage() {
               subTiltAngle={subTiltAngle}
             />
           </div>
+          <p className="share-caption">ドラッグして揺れ方を確認できます。</p>
+        </section>
 
-          <aside className="share-side-panel">
-            <div className="inline-note-card">
-              <strong>見どころ</strong>
-              <span>ドラッグして揺れ方を確認できます。今は公開用の最小構成だけを表示しています。</span>
-            </div>
-            <div className="inline-note-card">
-              <strong>仕様メモ</strong>
-              <span>編集 UI は非表示。保存・認証・OGP は後から繋げやすい構造に留めています。</span>
-            </div>
-          </aside>
+        <section className="share-footer-actions">
+          <Link className="ghost-button" to={`/editor/${draft.id ?? "new"}`}>
+            編集画面で開く
+          </Link>
         </section>
       </main>
     </>
