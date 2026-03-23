@@ -46,7 +46,7 @@ const projectSeeds: ProjectDraft[] = [
         sizeCm: 4.5,
       },
     },
-    title: "さくら 2連アクキー",
+    title: "さくら つながるアクキー",
     updatedAt: "2026-03-23T22:10:00.000Z",
   }),
   createEmptyProjectDraft({

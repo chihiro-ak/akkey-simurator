@@ -486,9 +486,6 @@ export function EditorWorkspace({ initialDraft }: Props) {
             <button className="ghost-button" onClick={() => setIsPublishPanelOpen((current) => !current)} type="button">
               公開設定
             </button>
-            <Link className={`ghost-button ${draft.isPublic ? "" : "is-disabled"}`} to={shareHref}>
-              公開ページ
-            </Link>
             <button className="primary-button" onClick={handleSave} type="button">
               {hasSavedOnce ? "保存" : "初回保存"}
             </button>
@@ -515,7 +512,7 @@ export function EditorWorkspace({ initialDraft }: Props) {
               />
             </label>
             <div className="project-meta-row">
-              <span className={`status-pill ${draft.isPublic ? "is-public" : ""}`}>{draft.isPublic ? "公開中" : "下書き"}</span>
+              <span className={`status-pill ${draft.isPublic ? "is-public" : ""}`}>{draft.isPublic ? "公開中" : "非公開"}</span>
               <button
                 className="text-link-button"
                 onClick={() => {

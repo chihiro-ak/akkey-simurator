@@ -128,10 +128,9 @@ export function SharePage() {
         <div className="topbar-inner page-topbar">
           <div className="topbar-copy">
             <h1>{draft.title}</h1>
-            <p className="page-subtitle">{draft.mode === "connected" ? "2連アクキー" : "単体アクキー"} の閲覧ページ</p>
+            <p className="page-subtitle">{draft.mode === "connected" ? "つながるアクキー" : "単体アクキー"}</p>
           </div>
           <div className="topbar-actions compact">
-            <span className="status-pill is-public">公開中</span>
             <Link className="ghost-link" to="/projects">
               一覧へ戻る
             </Link>
@@ -141,10 +140,6 @@ export function SharePage() {
 
       <main className="page-shell share-shell">
         <section className="share-stage">
-          <div className="share-meta">
-            <span className="field-label">公開URL</span>
-            <strong>/share/{draft.shareSlug}</strong>
-          </div>
           <div className="canvas-column share-canvas-column">
             <PreviewCanvas
               angle={angle}
@@ -189,12 +184,6 @@ export function SharePage() {
             />
           </div>
           <p className="share-caption">ドラッグして揺れ方を確認できます。</p>
-        </section>
-
-        <section className="share-footer-actions">
-          <Link className="ghost-button" to={`/editor/${draft.id ?? "new"}`}>
-            編集画面で開く
-          </Link>
         </section>
       </main>
     </>

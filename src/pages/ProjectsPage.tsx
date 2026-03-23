@@ -34,7 +34,7 @@ export function ProjectsPage() {
         <section className="section-heading">
           <div>
             <h2>保存済みの一覧</h2>
-            <p>編集を続けるか、公開ページを開くかをすぐ選べます。</p>
+            <p>続きから開けます。</p>
           </div>
         </section>
 
@@ -54,8 +54,8 @@ export function ProjectsPage() {
               </div>
               <div className="project-card-body">
                 <div className="project-card-header">
-                  <span className={`status-pill ${project.isPublic ? "is-public" : ""}`}>{project.isPublic ? "公開中" : "下書き"}</span>
-                  <span className="meta-note">{project.mode === "connected" ? "2連" : "単体"}</span>
+                  <span className={`status-pill ${project.isPublic ? "is-public" : ""}`}>{project.isPublic ? "公開中" : "非公開"}</span>
+                  <span className="meta-note">{project.mode === "connected" ? "つながるアクキー" : "単体"}</span>
                 </div>
                 <h3>{project.title}</h3>
                 <p>最終更新: {formatUpdatedAt(project.updatedAt)}</p>
