@@ -1,6 +1,6 @@
 import type { ChangeEvent } from "react";
 
-import { maxSizeCm, minSizeCm, thicknessOptions, type PartOption, type ThicknessMm } from "../keychainConfig";
+import { maxSizeCm, minSizeCm, type PartOption } from "../keychainConfig";
 import type { Artwork, UploadStatus } from "../simulator";
 
 type Props = {
@@ -8,14 +8,12 @@ type Props = {
   error: string | null;
   onDropFile: (file?: File) => void;
   onSelectPart: (id: PartOption["id"]) => void;
-  onThicknessChange: (value: ThicknessMm) => void;
   onUpload: (event: ChangeEvent<HTMLInputElement>) => void;
   parts: PartOption[];
   selectedPartId: PartOption["id"];
   sizeCm: number;
   sizeLabel: string;
   status: UploadStatus;
-  thicknessMm: ThicknessMm;
   setSizeCm: (value: number) => void;
 };
 
@@ -24,7 +22,6 @@ export function SettingsSidebar({
   error,
   onDropFile,
   onSelectPart,
-  onThicknessChange,
   onUpload,
   parts,
   selectedPartId,
@@ -32,7 +29,6 @@ export function SettingsSidebar({
   sizeCm,
   sizeLabel,
   status,
-  thicknessMm,
 }: Props) {
   return (
     <aside className="settings-column">
@@ -86,22 +82,6 @@ export function SettingsSidebar({
         <div className="size-scale">
           <span>30mm</span>
           <span>100mm</span>
-        </div>
-      </section>
-
-      <section className="config-card">
-        <h2 className="config-title">厚み</h2>
-        <div className="thickness-row">
-          {thicknessOptions.map((option) => (
-            <button
-              className={`thickness-button ${thicknessMm === option ? "is-active" : ""}`}
-              key={option}
-              onClick={() => onThicknessChange(option)}
-              type="button"
-            >
-              {option}mm
-            </button>
-          ))}
         </div>
       </section>
     </aside>

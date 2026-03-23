@@ -5,7 +5,6 @@ import strapImage from "./assets/parts/strap.png";
 
 export type PartId = "nasukan" | "ball-chain" | "strap";
 export type ViewMode = "edit" | "preview";
-export type ThicknessMm = 3 | 5 | 8;
 
 export type PartOption = {
   id: PartId;
@@ -22,7 +21,6 @@ export const partOptions: PartOption[] = [
 ];
 
 export const jumpRingAsset = jumpRingImage;
-export const thicknessOptions: ThicknessMm[] = [3, 5, 8];
 export const sizeChipOptions = [3, 5, 7, 8];
 export const defaultSizeCm = 5;
 export const minSizeCm = 3;

@@ -24,7 +24,6 @@ type Props = {
   previewRef: RefObject<HTMLDivElement | null>;
   renderedPart: PartOption;
   ringSize: number;
-  thicknessClass: string;
 };
 
 export function PreviewCanvas({
@@ -47,7 +46,6 @@ export function PreviewCanvas({
   previewRef,
   renderedPart,
   ringSize,
-  thicknessClass,
 }: Props) {
   return (
     <section className="canvas-card">
@@ -74,7 +72,7 @@ export function PreviewCanvas({
                   variant="preview"
                 />
                 <div
-                  className={`preview-artwork ${thicknessClass}`}
+                  className="preview-artwork"
                   style={{ left: `${artworkLeft}px`, top: `${artworkTop}px`, width: `${artworkSize}px` }}
                 >
                   <span className="acrylic-back-layer" />

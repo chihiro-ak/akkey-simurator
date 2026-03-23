@@ -21,7 +21,6 @@ type Props = {
   partImage: string;
   ringSize: number;
   status: UploadStatus;
-  thicknessClass: string;
 };
 
 export function EditorCanvas({
@@ -42,7 +41,6 @@ export function EditorCanvas({
   partImage,
   ringSize,
   status,
-  thicknessClass,
 }: Props) {
   return (
     <section className="canvas-card">
@@ -65,7 +63,7 @@ export function EditorCanvas({
                   variant="editor"
                 />
                 <div
-                  className={`editor-artwork ${thicknessClass}`}
+                  className="editor-artwork"
                   ref={cardRef}
                   style={{ left: `${artworkLeft}px`, top: `${artworkTop}px`, width: `${artworkSize}px` }}
                 >

@@ -5,16 +5,22 @@ import { resolveHole, type Contour } from "../simulator";
 
 type Options = {
   contour: Contour | null;
+  currentValue: number;
   onChange: (value: number) => void;
 };
 
-export function useHoleDrag({ contour, onChange }: Options) {
+const DRAG_LERP = 0.18;
+
+export function useHoleDrag({ contour, currentValue, onChange }: Options) {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
 
   const projectPointerToHole = (clientX: number, clientY: number, rect: DOMRect) => {
     const xPercent = ((clientX - rect.left) / rect.width) * 100;
-    if (!contour) return resolveHole(xPercent, contour);
+    if (!contour) {
+      const resolved = resolveHole(xPercent, contour);
+      return currentValue + (resolved - currentValue) * DRAG_LERP;
+    }
 
     const yPercent = ((clientY - rect.top) / rect.height) * 100;
     const anchor = resolveHole(xPercent, contour);
@@ -33,7 +39,8 @@ export function useHoleDrag({ contour, onChange }: Options) {
       }
     });
 
-    return resolveHole(nearest, contour);
+    const resolved = resolveHole(nearest, contour);
+    return currentValue + (resolved - currentValue) * DRAG_LERP;
   };
 
   useEffect(() => {
@@ -54,7 +61,7 @@ export function useHoleDrag({ contour, onChange }: Options) {
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
     };
-  }, [contour, dragging, onChange]);
+  }, [contour, currentValue, dragging, onChange]);
 
   const beginHoleDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
     event.preventDefault();

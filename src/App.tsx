@@ -11,7 +11,6 @@ import {
   previewAngleLimit,
   previewDragVelocityLimit,
   type PartId,
-  type ThicknessMm,
   type ViewMode,
 } from "./keychainConfig";
 import { useArtworkUpload } from "./hooks/useArtworkUpload";
@@ -24,7 +23,6 @@ export default function App() {
   const [selectedPart, setSelectedPart] = useState<PartId>("nasukan");
   const [viewMode, setViewMode] = useState<ViewMode>("edit");
   const [sizeCm, setSizeCm] = useState(defaultSizeCm);
-  const [thicknessMm, setThicknessMm] = useState<ThicknessMm>(3);
   const [holePosition, setHolePosition] = useState(defaultHole);
   const [viewportWidth, setViewportWidth] = useState(typeof window === "undefined" ? 1280 : window.innerWidth);
 
@@ -45,6 +43,7 @@ export default function App() {
 
   const { beginHoleDrag, cardRef, dragging } = useHoleDrag({
     contour,
+    currentValue: holePosition,
     onChange: setHolePosition,
   });
 
@@ -99,8 +98,6 @@ export default function App() {
   const renderedAngle = viewMode === "edit" || dragging ? 0 : angle;
   const holeOffsetRatio = Math.min(1, Math.abs(holePosition - 50) / 32);
   const hardwareCounterRotation = `${((renderedAngle * 180) / Math.PI) * (0.34 + holeOffsetRatio * 0.44)}deg`;
-  const thicknessClass = `thickness-${thicknessMm}`;
-
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -132,7 +129,6 @@ export default function App() {
             error={error}
             onDropFile={handleDropFile}
             onSelectPart={setSelectedPart}
-            onThicknessChange={setThicknessMm}
             onUpload={handleUpload}
             parts={partOptions}
             selectedPartId={selectedPart}
@@ -140,7 +136,6 @@ export default function App() {
             sizeCm={sizeCm}
             sizeLabel={sizeLabel}
             status={status}
-            thicknessMm={thicknessMm}
           />
 
           <section className="canvas-column">
@@ -182,7 +177,6 @@ export default function App() {
               ringSize={ringSize}
               status={status}
               artworkTop={artworkTop}
-              thicknessClass={thicknessClass}
             />
             ) : (
               <PreviewCanvas
@@ -205,7 +199,6 @@ export default function App() {
                 previewRef={previewRef}
                 renderedPart={activePart}
                 ringSize={ringSize}
-                thicknessClass={thicknessClass}
               />
             )}
           </section>
