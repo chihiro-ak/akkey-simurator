@@ -509,7 +509,6 @@ export default function App() {
                 hardwareWidth={hardwareWidth}
                 linkAnchorX={linkAnchorX}
                 linkAnchorY={linkAnchorY}
-                linkHole={mainLinkHole}
                 linkLength={linkLength}
                 lowerBaseAngle={lowerBaseAngle}
                 lowerCard={{

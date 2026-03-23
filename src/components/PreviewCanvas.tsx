@@ -3,6 +3,7 @@ import type { PointerEvent, RefObject } from "react";
 import type { PartOption } from "../keychainConfig";
 import type { Artwork, HoleLayout } from "../simulator";
 import { HardwareStack } from "./HardwareStack";
+import { PreviewJumpRing } from "./PreviewJumpRing";
 
 type CardVisual = {
   artwork: Artwork | null;
@@ -23,7 +24,6 @@ type Props = {
   hardwareWidth: number;
   linkAnchorX: number;
   linkAnchorY: number;
-  linkHole: HoleLayout;
   linkLength: number;
   lowerBaseAngle: number;
   lowerCard: CardVisual;
@@ -51,7 +51,6 @@ export function PreviewCanvas({
   hardwareWidth,
   linkAnchorX,
   linkAnchorY,
-  linkHole,
   linkLength,
   lowerBaseAngle,
   lowerCard,
@@ -92,6 +91,7 @@ export function PreviewCanvas({
                   ringSize={ringSize}
                   variant="preview"
                 />
+
                 <div
                   className="preview-artwork"
                   ref={mainCard.cardRef}
@@ -100,13 +100,9 @@ export function PreviewCanvas({
                   <span className="acrylic-back-layer" />
                   <span className="acrylic-side-band" />
                   <span className="acrylic-side-glow" />
-                  <span
-                    className="hole-shadow is-preview is-subtle is-metal-preview is-hardware-link"
-                    style={{ left: `${mainCard.primaryHole.xPx}px`, top: `${mainCard.primaryHole.yPx}px` }}
-                  />
-                  {connected ? (
-                    <span className="hole-shadow is-preview is-link-point is-subtle is-metal-preview" style={{ left: `${linkHole.xPx}px`, top: `${linkHole.yPx}px` }} />
-                  ) : null}
+                  <span className="preview-attachment-point" style={{ left: `${mainCard.primaryHole.xPx}px`, top: `${mainCard.primaryHole.yPx}px` }}>
+                    <PreviewJumpRing className="is-main-anchor" size={12} topConnectorHeight={7} withCaps />
+                  </span>
                   <img alt="プレビュー画像" className="artwork-image" draggable={false} src={mainCard.artwork.previewUrl} />
                   <span className="acrylic-front-gloss" />
                   <span className="acrylic-side-specular" />
@@ -114,14 +110,11 @@ export function PreviewCanvas({
 
                 {connected ? (
                   <div className="linked-anchor is-ready" style={{ left: `${linkAnchorX}px`, top: `${linkAnchorY}px` }}>
-                    <button
-                      aria-label="連結位置を調整"
-                      className="linked-anchor-ring linked-anchor-button is-preview-subtle is-metal-preview"
-                      onPointerDown={onBeginLinkDrag}
-                      type="button"
-                    />
+                    <button aria-label="連結位置を調整" className="preview-middle-link-bar" onPointerDown={onBeginLinkDrag} type="button">
+                      <span className="preview-middle-link-core" />
+                    </button>
                     <div className="linked-swing-group" style={{ transform: `rotate(${(-subSwingAngle * 180) / Math.PI}deg)` }}>
-                      <span className="linked-anchor-chain" style={{ height: `${linkLength}px` }} />
+                      <span className="linked-anchor-chain is-preview-hardware" style={{ height: `${linkLength}px` }} />
                       <div
                         className="linked-body-group"
                         style={{
@@ -136,7 +129,9 @@ export function PreviewCanvas({
                           <span className="acrylic-back-layer" />
                           <span className="acrylic-side-band" />
                           <span className="acrylic-side-glow" />
-                          <span className="hole-shadow is-preview is-secondary is-subtle is-metal-preview" style={{ left: `${lowerCard.primaryHole.xPx}px`, top: `${lowerCard.primaryHole.yPx}px` }} />
+                          <span className="preview-attachment-point" style={{ left: `${lowerCard.primaryHole.xPx}px`, top: `${lowerCard.primaryHole.yPx}px` }}>
+                            <PreviewJumpRing className="is-sub-anchor" size={12} />
+                          </span>
                           {lowerCard.artwork ? (
                             <>
                               <img alt="つながるプレビュー画像" className="artwork-image" draggable={false} src={lowerCard.artwork.previewUrl} />
