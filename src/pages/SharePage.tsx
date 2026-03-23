@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { Link, useParams } from "react-router-dom";
 
+import { AppHeader } from "../components/AppHeader";
 import { PreviewCanvas } from "../components/PreviewCanvas";
 import { getMockProjectBySlug } from "../features/projects/mockProjects";
 import { useArtworkUpload } from "../hooks/useArtworkUpload";
@@ -124,21 +125,19 @@ export function SharePage() {
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner page-topbar">
-          <div className="topbar-copy">
-            <h1>{draft.title}</h1>
-            <p className="page-subtitle">{draft.mode === "connected" ? "つながるアクキー" : "単体アクキー"}</p>
-          </div>
-          <div className="topbar-actions compact">
-            <Link className="ghost-link" to="/projects">
-              一覧へ戻る
-            </Link>
-          </div>
-        </div>
-      </header>
+      <AppHeader
+        actions={
+          <Link className="ghost-link" to="/projects">
+            一覧へ戻る
+          </Link>
+        }
+      />
 
       <main className="page-shell share-shell">
+        <section className="share-meta">
+          <h1>{draft.title}</h1>
+          <p>{draft.mode === "connected" ? "つながるアクキー" : "単体アクキー"}</p>
+        </section>
         <section className="share-stage">
           <div className="canvas-column share-canvas-column">
             <PreviewCanvas
@@ -183,7 +182,7 @@ export function SharePage() {
               subTiltAngle={subTiltAngle}
             />
           </div>
-          <p className="share-caption">ドラッグして揺れ方を確認できます。</p>
+          <p className="share-caption">ドラッグして揺れ方を見られます。</p>
         </section>
       </main>
     </>

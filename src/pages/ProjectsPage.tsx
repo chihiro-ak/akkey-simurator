@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 
+import { AppHeader } from "../components/AppHeader";
 import { mockProjectSummaries } from "../features/projects/mockProjects";
 
 const formatUpdatedAt = (value: string) =>
@@ -13,28 +14,25 @@ const formatUpdatedAt = (value: string) =>
 export function ProjectsPage() {
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner page-topbar">
-          <div className="topbar-copy">
-            <h1>マイプロジェクト</h1>
-            <p className="page-subtitle">保存したアクキー案をここから開けます。</p>
-          </div>
-          <div className="topbar-actions compact">
+      <AppHeader
+        actions={
+          <>
             <Link className="ghost-link" to="/login">
               ログイン
             </Link>
             <Link className="primary-button" to="/editor/new">
               新規作成
             </Link>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+        subtitle="保存した作品を開けます"
+        title="マイプロジェクト"
+      />
 
       <main className="page-shell">
         <section className="section-heading">
           <div>
-            <h2>保存済みの一覧</h2>
-            <p>続きから開けます。</p>
+            <h2>保存済み</h2>
           </div>
         </section>
 
@@ -43,7 +41,6 @@ export function ProjectsPage() {
             <span className="project-thumb project-thumb-create">＋</span>
             <div className="project-card-body">
               <h3>新しく作成</h3>
-              <p>空の編集画面を開きます。</p>
             </div>
           </Link>
 

@@ -1,10 +1,14 @@
 import type { ChangeEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
+import { AppHeader } from "../../components/AppHeader";
 import { EditorCanvas } from "../../components/EditorCanvas";
 import { PreviewCanvas } from "../../components/PreviewCanvas";
 import { SettingsSidebar } from "../../components/SettingsSidebar";
+import { useArtworkUpload } from "../../hooks/useArtworkUpload";
+import { useConnectedPreviewMotion } from "../../hooks/useConnectedPreviewMotion";
+import { usePartContour } from "../../hooks/usePartContour";
 import {
   defaultSizeCm,
   hardwareSizeCm,
@@ -14,23 +18,20 @@ import {
   type ViewMode,
 } from "../../keychainConfig";
 import { createShareSlug } from "../../lib/projectDraft";
-import { useArtworkUpload } from "../../hooks/useArtworkUpload";
-import { useConnectedPreviewMotion } from "../../hooks/useConnectedPreviewMotion";
-import { usePartContour } from "../../hooks/usePartContour";
 import {
   defaultHole,
   getArtworkSizePx,
   getHoleLayout,
   getLinkedAttachment,
   getPreviewPhysicsModel,
-  type HoleEdge,
-  type HoleKind,
-  type SlotId,
-  type UploadStatus,
   normalizedToPercent,
   percentToNormalized,
   resolveHole,
   resolveHoleNormalized,
+  type HoleEdge,
+  type HoleKind,
+  type SlotId,
+  type UploadStatus,
 } from "../../simulator";
 import type { ProjectDraft } from "../../types/project";
 
@@ -74,12 +75,12 @@ const formatSavedAt = (value: string) =>
   }).format(new Date(value));
 
 export function EditorWorkspace({ initialDraft }: Props) {
+  const navigate = useNavigate();
   const [draft, setDraft] = useState<ProjectDraft>(initialDraft);
   const [activeSlot, setActiveSlot] = useState<SlotId>("main");
   const [viewMode, setViewMode] = useState<ViewMode>("edit");
   const [viewportWidth, setViewportWidth] = useState(typeof window === "undefined" ? 1280 : window.innerWidth);
   const [dragState, setDragState] = useState<DragState>(null);
-  const [isPublishPanelOpen, setIsPublishPanelOpen] = useState(false);
   const [hasSavedOnce, setHasSavedOnce] = useState(Boolean(initialDraft.id));
   const [savedAt, setSavedAt] = useState(initialDraft.updatedAt);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
@@ -394,12 +395,13 @@ export function EditorWorkspace({ initialDraft }: Props) {
     });
   };
 
-  const markSaved = () => {
+  const markSaved = (overrides?: Partial<ProjectDraft>) => {
     const timestamp = new Date().toISOString();
     setSavedAt(timestamp);
     setHasSavedOnce(true);
     setDraft((current) => ({
       ...current,
+      ...overrides,
       id: current.id ?? `local-${Date.now()}`,
       updatedAt: timestamp,
     }));
@@ -407,7 +409,15 @@ export function EditorWorkspace({ initialDraft }: Props) {
 
   const handleSave = () => {
     markSaved();
-    setIsPublishPanelOpen(true);
+  };
+
+  const handleSaveDraft = () => {
+    markSaved({ isPublic: false });
+  };
+
+  const handlePublishAndSave = () => {
+    markSaved({ isPublic: true });
+    navigate(`/share/${draft.shareSlug}`);
   };
 
   const handleUpload = async (slot: SlotId, event: ChangeEvent<HTMLInputElement>) => {
@@ -473,25 +483,20 @@ export function EditorWorkspace({ initialDraft }: Props) {
 
   return (
     <>
-      <header className="topbar">
-        <div className="topbar-inner topbar-editor">
-          <div className="topbar-copy">
-            <h1>アクキーシミュレーター</h1>
-            <p className="page-subtitle">保存しながら編集を続けられます。</p>
-          </div>
-          <div className="topbar-actions editor-actions">
+      <AppHeader
+        actions={
+          <>
             <Link className="ghost-link" to="/projects">
               一覧
             </Link>
-            <button className="ghost-button" onClick={() => setIsPublishPanelOpen((current) => !current)} type="button">
-              公開設定
-            </button>
             <button className="primary-button" onClick={handleSave} type="button">
-              {hasSavedOnce ? "保存" : "初回保存"}
+              {hasSavedOnce ? "保存する" : "はじめて保存"}
             </button>
-          </div>
-        </div>
-      </header>
+          </>
+        }
+        subtitle={hasSavedOnce ? `最終保存 ${formatSavedAt(savedAt)}` : "未保存"}
+        title={draft.title}
+      />
 
       <main className="workspace-shell editor-shell">
         <section className="project-toolbar-card project-toolbar-card-compact">
@@ -529,7 +534,7 @@ export function EditorWorkspace({ initialDraft }: Props) {
             <div className="project-meta-card">
               <span className="field-label">保存状態</span>
               <strong>{hasSavedOnce ? "保存済み" : "未保存"}</strong>
-              <span>最終保存: {formatSavedAt(savedAt)}</span>
+              <span>最終保存 {formatSavedAt(savedAt)}</span>
             </div>
           </div>
         </section>
@@ -553,7 +558,7 @@ export function EditorWorkspace({ initialDraft }: Props) {
           />
 
           <section className="canvas-column">
-            <div className="canvas-switch" role="tablist" aria-label="表示切り替え">
+            <div aria-label="表示切り替え" className="canvas-switch" role="tablist">
               <button
                 aria-selected={viewMode === "edit"}
                 className={viewMode === "edit" ? "is-active" : ""}
@@ -629,18 +634,18 @@ export function EditorWorkspace({ initialDraft }: Props) {
                 lowerBaseAngle={lowerBaseAngle}
                 lowerCard={{
                   artwork: subUpload.artwork,
+                  cardRef: subPreviewCardRef,
                   left: lowerCardLeft,
                   primaryHole: subPrimaryHole,
-                  cardRef: subPreviewCardRef,
                   size: subSize,
                   top: lowerCardTop,
                 }}
                 lowerCenterRadius={lowerCenterRadius}
                 mainCard={{
                   artwork: mainUpload.artwork,
+                  cardRef: mainPreviewCardRef,
                   left: mainCardLeft,
                   primaryHole: mainPrimaryHole,
-                  cardRef: mainPreviewCardRef,
                   size: mainSize,
                   top: mainCardTop,
                 }}
@@ -656,78 +661,51 @@ export function EditorWorkspace({ initialDraft }: Props) {
                 subTiltAngle={subTiltAngle}
               />
             )}
+
+            <section className="publish-flow-card">
+              <div className="publish-flow-copy">
+                <h2>保存と公開</h2>
+                <p>プレビューを確認したら保存します。</p>
+              </div>
+
+              <div className="publish-flow-grid">
+                <div className="publish-flow-summary">
+                  <span className="field-label">公開状態</span>
+                  <div className="publish-status-row">
+                    <button
+                      className={`toggle-chip ${!draft.isPublic ? "is-active" : ""}`}
+                      onClick={() => setDraft((current) => ({ ...current, isPublic: false }))}
+                      type="button"
+                    >
+                      非公開
+                    </button>
+                    <button
+                      className={`toggle-chip ${draft.isPublic ? "is-active" : ""}`}
+                      onClick={() => setDraft((current) => ({ ...current, isPublic: true }))}
+                      type="button"
+                    >
+                      公開
+                    </button>
+                  </div>
+                </div>
+
+                <div className="publish-flow-summary">
+                  <span className="field-label">共有リンク</span>
+                  {draft.isPublic ? <strong>{shareHref}</strong> : <span>公開すると表示されます</span>}
+                </div>
+              </div>
+
+              <div className="publish-flow-actions">
+                <button className="secondary-button" onClick={handleSaveDraft} type="button">
+                  保存する
+                </button>
+                <button className="primary-button" onClick={handlePublishAndSave} type="button">
+                  公開して保存
+                </button>
+              </div>
+            </section>
           </section>
         </div>
-
-        <aside className={`side-panel ${isPublishPanelOpen ? "is-open" : ""}`}>
-          <div className="side-panel-card">
-            <div className="side-panel-header">
-              <div>
-                <h2>公開設定</h2>
-              </div>
-              <button className="ghost-button" onClick={() => setIsPublishPanelOpen(false)} type="button">
-                閉じる
-              </button>
-            </div>
-
-            <label className="panel-field">
-              <span className="field-label">公開URL</span>
-              <input
-                onChange={(event) => setDraft((current) => ({ ...current, shareSlug: createShareSlug(event.target.value) }))}
-                type="text"
-                value={draft.shareSlug}
-              />
-            </label>
-
-            <div className="panel-toggle-row">
-              <div>
-                <strong>{draft.isPublic ? "公開ページを表示中" : "非公開のまま保存"}</strong>
-                <span>保存と公開状態だけを先に確認できる仮UIです。</span>
-              </div>
-              <button
-                className={`toggle-chip ${draft.isPublic ? "is-active" : ""}`}
-                onClick={() => setDraft((current) => ({ ...current, isPublic: !current.isPublic }))}
-                type="button"
-              >
-                {draft.isPublic ? "公開中" : "非公開"}
-              </button>
-            </div>
-
-            <div className="panel-summary">
-              <div>
-                <span className="field-label">保存モード</span>
-                <strong>{hasSavedOnce ? "上書き保存" : "初回保存"}</strong>
-              </div>
-              <div>
-                <span className="field-label">共有先</span>
-                <strong>{shareHref}</strong>
-              </div>
-            </div>
-
-            <div className="panel-actions">
-              <button
-                className="secondary-button"
-                onClick={() => {
-                  markSaved();
-                  setDraft((current) => ({ ...current, isPublic: false }));
-                }}
-                type="button"
-              >
-                下書き保存
-              </button>
-              <button
-                className="primary-button"
-                onClick={() => {
-                  markSaved();
-                  setDraft((current) => ({ ...current, isPublic: true }));
-                }}
-                type="button"
-              >
-                保存して公開
-              </button>
-            </div>
-          </div>
-        </aside>
       </main>
     </>
   );
