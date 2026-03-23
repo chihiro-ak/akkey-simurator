@@ -16,8 +16,7 @@ type Props = {
   error: string | null;
   holeX: number;
   holeY: number;
-  onBeginHoleDrag: (event: PointerEvent<HTMLButtonElement>) => void;
-  onResetHole: () => void;
+  onBeginArtworkDrag: (event: PointerEvent<HTMLElement>) => void;
   partImage: string;
   ringSize: number;
   status: UploadStatus;
@@ -36,8 +35,7 @@ export function EditorCanvas({
   error,
   holeX,
   holeY,
-  onBeginHoleDrag,
-  onResetHole,
+  onBeginArtworkDrag,
   partImage,
   ringSize,
   status,
@@ -47,11 +45,7 @@ export function EditorCanvas({
       <div className="canvas-frame">
         {artwork ? (
           <>
-            <div className="safety-zone">
-              <div className="safety-zone-inner">
-                <span>安全エリア</span>
-              </div>
-            </div>
+            <div className="canvas-caption">ドラッグで位置調整</div>
             <div className="swing-anchor" style={{ top: `${anchorTop}px` }}>
               <div className="swing-body">
                 <HardwareStack
@@ -65,18 +59,16 @@ export function EditorCanvas({
                 <div
                   className="editor-artwork"
                   ref={cardRef}
+                  onPointerDown={onBeginArtworkDrag}
                   style={{ left: `${artworkLeft}px`, top: `${artworkTop}px`, width: `${artworkSize}px` }}
                 >
                   <span className="hole-shadow" style={{ left: `${holeX}px`, top: `${holeY}px` }} />
-                  <button
-                    aria-label="穴位置を調整"
-                    className="hole-handle"
-                    onDoubleClick={onResetHole}
-                    onPointerDown={onBeginHoleDrag}
-                    style={{ left: `${holeX}px`, top: `${holeY}px` }}
-                    type="button"
+                  <img
+                    alt="アップロード画像"
+                    className="artwork-image"
+                    draggable={false}
+                    src={artwork.previewUrl}
                   />
-                  <img alt="アップロード画像" className="artwork-image" draggable={false} src={artwork.previewUrl} />
                 </div>
               </div>
             </div>

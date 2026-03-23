@@ -10,10 +10,15 @@ type Options = {
 };
 
 const DRAG_LERP = 0.18;
+const ARTWORK_DRAG_SCALE = 0.7;
+
+type DragMode = "handle" | "artwork";
 
 export function useHoleDrag({ contour, currentValue, onChange }: Options) {
   const cardRef = useRef<HTMLDivElement | null>(null);
   const [dragging, setDragging] = useState(false);
+  const dragModeRef = useRef<DragMode>("handle");
+  const artworkStartRef = useRef<{ clientX: number; startValue: number; width: number } | null>(null);
 
   const projectPointerToHole = (clientX: number, clientY: number, rect: DOMRect) => {
     const xPercent = ((clientX - rect.left) / rect.width) * 100;
@@ -49,10 +54,25 @@ export function useHoleDrag({ contour, currentValue, onChange }: Options) {
     const onMove = (event: PointerEvent) => {
       const card = cardRef.current;
       if (!card) return;
+
+      if (dragModeRef.current === "artwork") {
+        const start = artworkStartRef.current;
+        if (!start) return;
+
+        const deltaXPercent = ((event.clientX - start.clientX) / start.width) * 100;
+        const target = start.startValue - deltaXPercent * ARTWORK_DRAG_SCALE;
+        const resolved = resolveHole(target, contour);
+        onChange(start.startValue + (resolved - start.startValue) * 0.75);
+        return;
+      }
+
       const rect = card.getBoundingClientRect();
       onChange(projectPointerToHole(event.clientX, event.clientY, rect));
     };
-    const onUp = () => setDragging(false);
+    const onUp = () => {
+      artworkStartRef.current = null;
+      setDragging(false);
+    };
 
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
@@ -63,9 +83,10 @@ export function useHoleDrag({ contour, currentValue, onChange }: Options) {
     };
   }, [contour, currentValue, dragging, onChange]);
 
-  const beginHoleDrag = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const beginHoleDrag = (event: ReactPointerEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
+    dragModeRef.current = "handle";
     const card = cardRef.current;
     if (!card) return;
 
@@ -74,7 +95,24 @@ export function useHoleDrag({ contour, currentValue, onChange }: Options) {
     setDragging(true);
   };
 
+  const beginArtworkDrag = (event: ReactPointerEvent<HTMLElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dragModeRef.current = "artwork";
+    const card = cardRef.current;
+    if (!card) return;
+
+    const rect = card.getBoundingClientRect();
+    artworkStartRef.current = {
+      clientX: event.clientX,
+      startValue: currentValue,
+      width: rect.width,
+    };
+    setDragging(true);
+  };
+
   return {
+    beginArtworkDrag,
     beginHoleDrag,
     cardRef,
     dragging,

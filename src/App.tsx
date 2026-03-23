@@ -41,7 +41,7 @@ export default function App() {
     setHolePosition((current) => resolveHole(current, contour));
   }, [contour]);
 
-  const { beginHoleDrag, cardRef, dragging } = useHoleDrag({
+  const { beginArtworkDrag, cardRef, dragging } = useHoleDrag({
     contour,
     currentValue: holePosition,
     onChange: setHolePosition,
@@ -96,8 +96,7 @@ export default function App() {
   });
 
   const renderedAngle = viewMode === "edit" || dragging ? 0 : angle;
-  const holeOffsetRatio = Math.min(1, Math.abs(holePosition - 50) / 32);
-  const hardwareCounterRotation = `${((renderedAngle * 180) / Math.PI) * (0.34 + holeOffsetRatio * 0.44)}deg`;
+  const hardwareCounterRotation = "0deg";
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     event.target.value = "";
@@ -112,8 +111,6 @@ export default function App() {
   };
 
   const sizeLabel = `${(sizeCm * 10).toFixed(0)}mm`;
-  const handleResetHole = () => setHolePosition(resolveHole(defaultHole, contour));
-
   return (
     <>
       <header className="topbar">
@@ -169,8 +166,7 @@ export default function App() {
               hardwareWidth={hardwareWidth}
               holeX={holeX}
               holeY={holeY}
-              onBeginHoleDrag={beginHoleDrag}
-              onResetHole={handleResetHole}
+              onBeginArtworkDrag={beginArtworkDrag}
               anchorTop={anchorTop}
               artworkLeft={artworkLeft}
               partImage={activePart.image}
