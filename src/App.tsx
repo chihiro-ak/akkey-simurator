@@ -35,16 +35,14 @@ import {
 
 type DragState =
   | {
+      startHoles: {
+        link?: number;
+        primary: number;
+      };
       startClientX: number;
-      startValue: number;
       type: "artwork";
       width: number;
       slot: SlotId;
-    }
-  | {
-      hole: HoleKind;
-      slot: SlotId;
-      type: "hole";
     }
   | null;
 
@@ -206,66 +204,28 @@ export default function App() {
 
   const getCardRef = (slot: SlotId) => (slot === "main" ? mainCardRef : subCardRef);
 
-  const projectPointerToHole = (slot: SlotId, hole: HoleKind, clientX: number, clientY: number) => {
-    const card = getCardRef(slot).current;
-    const contour = uploads[slot].contour;
-    const edge = getHoleEdge(slot, hole);
-    if (!card) return;
-
-    const rect = card.getBoundingClientRect();
-    const xPercent = ((clientX - rect.left) / rect.width) * 100;
-    if (!contour) {
-      const resolved = resolveHole(xPercent, contour, edge);
-      return percentToNormalized(resolved);
-    }
-
-    const yPercent = ((clientY - rect.top) / rect.height) * 100;
-    const edgePoints = edge === "bottom" ? contour.bottomEdgeByPercent : contour.topEdgeByPercent;
-    const anchor = resolveHole(xPercent, contour, edge);
-    let nearest = anchor;
-    let bestDistance = Number.POSITIVE_INFINITY;
-
-    edgePoints.forEach((edgeY, index) => {
-      if (edgeY === null) return;
-      if (Math.abs(index - anchor) > 12) return;
-      const dx = index - xPercent;
-      const dy = edgeY - yPercent;
-      const distance = dx * dx + dy * dy;
-      if (distance < bestDistance) {
-        bestDistance = distance;
-        nearest = index;
-      }
-    });
-
-    return percentToNormalized(resolveHole(nearest, contour, edge));
-  };
-
   useEffect(() => {
     if (!dragState) return;
 
     const onMove = (event: PointerEvent) => {
-      if (dragState.type === "artwork") {
-        const contour = uploads[dragState.slot].contour;
-        const delta = (event.clientX - dragState.startClientX) / Math.max(dragState.width, 1);
-        const target = dragState.startValue - delta * ARTWORK_DRAG_SCALE;
-        const resolved = resolveHoleNormalized(target, contour, "top");
-        setSlotHoles((current) => ({
-          ...current,
-          [dragState.slot]: {
-            ...current[dragState.slot],
-            primary: dragState.startValue + (resolved - dragState.startValue) * 0.75,
-          },
-        }));
-        return;
-      }
+      const contour = uploads[dragState.slot].contour;
+      const delta = (event.clientX - dragState.startClientX) / Math.max(dragState.width, 1);
+      const shift = delta * ARTWORK_DRAG_SCALE;
+      const resolveWithShift = (hole: HoleKind, startValue: number) =>
+        resolveHoleNormalized(startValue - shift, contour, getHoleEdge(dragState.slot, hole));
 
-      const nextValue = projectPointerToHole(dragState.slot, dragState.hole, event.clientX, event.clientY);
-      if (nextValue === undefined) return;
       setSlotHoles((current) => ({
         ...current,
         [dragState.slot]: {
           ...current[dragState.slot],
-          [dragState.hole]: nextValue,
+          ...(dragState.slot === "main"
+            ? {
+                link: resolveWithShift("link", dragState.startHoles.link ?? current.main.link),
+                primary: resolveWithShift("primary", dragState.startHoles.primary),
+              }
+            : {
+                primary: resolveWithShift("primary", dragState.startHoles.primary),
+              }),
         },
       }));
     };
@@ -279,24 +239,6 @@ export default function App() {
     };
   }, [dragState, mainUpload.contour, subUpload.contour]);
 
-  const beginHoleDrag = (slot: SlotId, hole: HoleKind, event: ReactPointerEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    event.stopPropagation();
-    setActiveSlot(slot);
-    endPreviewDrag();
-    const nextValue = projectPointerToHole(slot, hole, event.clientX, event.clientY);
-    if (nextValue !== undefined) {
-      setSlotHoles((current) => ({
-        ...current,
-        [slot]: {
-          ...current[slot],
-          [hole]: nextValue,
-        },
-      }));
-    }
-    setDragState({ hole, slot, type: "hole" });
-  };
-
   const beginArtworkDrag = (slot: SlotId, event: ReactPointerEvent<HTMLElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -304,10 +246,11 @@ export default function App() {
     if (!card) return;
     const rect = card.getBoundingClientRect();
     setActiveSlot(slot);
+    endPreviewDrag();
     setDragState({
       slot,
+      startHoles: { ...slotHoles[slot] },
       startClientX: event.clientX,
-      startValue: slotHoles[slot].primary,
       type: "artwork",
       width: rect.width,
     });
@@ -448,7 +391,6 @@ export default function App() {
                 }}
                 onActivateSlot={setActiveSlot}
                 onBeginArtworkDrag={beginArtworkDrag}
-                onBeginHoleDrag={beginHoleDrag}
                 partImage={activePart.image}
                 ringSize={ringSize}
               />

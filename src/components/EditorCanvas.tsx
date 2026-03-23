@@ -1,7 +1,7 @@
 import type { PointerEvent, RefObject } from "react";
 
-import { HardwareStack } from "./HardwareStack";
 import type { Artwork, HoleLayout, SlotId, UploadStatus } from "../simulator";
+import { HardwareStack } from "./HardwareStack";
 
 type CardVisual = {
   artwork: Artwork | null;
@@ -32,7 +32,6 @@ type Props = {
   mainCard: CardVisual;
   onActivateSlot: (slot: SlotId) => void;
   onBeginArtworkDrag: (slot: SlotId, event: PointerEvent<HTMLElement>) => void;
-  onBeginHoleDrag: (slot: SlotId, hole: "primary" | "link", event: PointerEvent<HTMLButtonElement>) => void;
   partImage: string;
   ringSize: number;
 };
@@ -41,7 +40,7 @@ function renderPlaceholder(status: UploadStatus, error: string | null, message: 
   return (
     <div className={`artwork-placeholder is-${status}`}>
       <strong>{message}</strong>
-      <span>{status === "error" ? error : status === "loading" ? "画像を読み込み中です" : "画像を追加すると位置を調整できます。"}</span>
+      <span>{status === "error" ? error : status === "loading" ? "画像を読み込み中です" : "画像を追加すると位置を調整できます"}</span>
     </div>
   );
 }
@@ -63,7 +62,6 @@ export function EditorCanvas({
   mainCard,
   onActivateSlot,
   onBeginArtworkDrag,
-  onBeginHoleDrag,
   partImage,
   ringSize,
 }: Props) {
@@ -76,7 +74,7 @@ export function EditorCanvas({
       <div className="canvas-frame">
         {mainCard.artwork ? (
           <>
-            <div className="canvas-caption">編集したい画像を選んで、穴位置を調整できます</div>
+            <div className="canvas-caption">画像をドラッグして接合位置を調整できます</div>
             <div className="swing-anchor" style={{ top: `${anchorTop}px` }}>
               <div className="swing-body">
                 <HardwareStack
@@ -92,30 +90,20 @@ export function EditorCanvas({
                   onClick={() => onActivateSlot("main")}
                   onPointerDown={(event) => {
                     onActivateSlot("main");
-                    if (mainPrimaryActive) onBeginArtworkDrag("main", event);
+                    onBeginArtworkDrag("main", event);
                   }}
                   ref={mainCard.cardRef}
                   style={{ left: `${mainCard.left}px`, top: `${mainCard.top}px`, width: `${mainCard.size}px` }}
                 >
-                  <span className="hole-shadow" style={{ left: `${mainCard.primaryHole.xPx}px`, top: `${mainCard.primaryHole.yPx}px` }} />
-                  <button
-                    aria-label="穴位置を調整"
-                    className={`hole-handle ${mainPrimaryActive ? "is-active" : "is-muted"}`}
-                    onPointerDown={(event) => onBeginHoleDrag("main", "primary", event)}
+                  <span
+                    className={`hole-shadow ${mainPrimaryActive ? "is-active" : "is-muted"}`}
                     style={{ left: `${mainCard.primaryHole.xPx}px`, top: `${mainCard.primaryHole.yPx}px` }}
-                    type="button"
                   />
                   {connected ? (
-                    <>
-                      <span className="hole-shadow is-link-point" style={{ left: `${linkHole.xPx}px`, top: `${linkHole.yPx}px` }} />
-                      <button
-                        aria-label="つなぎ位置を調整"
-                        className={`hole-handle is-link-point ${mainLinkActive ? "is-active" : "is-muted"}`}
-                        onPointerDown={(event) => onBeginHoleDrag("main", "link", event)}
-                        style={{ left: `${linkHole.xPx}px`, top: `${linkHole.yPx}px` }}
-                        type="button"
-                      />
-                    </>
+                    <span
+                      className={`hole-shadow is-link-point ${mainLinkActive ? "is-active" : "is-muted"}`}
+                      style={{ left: `${linkHole.xPx}px`, top: `${linkHole.yPx}px` }}
+                    />
                   ) : null}
                   <img alt="アップロード画像" className="artwork-image" draggable={false} src={mainCard.artwork.previewUrl} />
                 </div>
@@ -134,23 +122,19 @@ export function EditorCanvas({
                           onClick={() => onActivateSlot("sub")}
                           onPointerDown={(event) => {
                             onActivateSlot("sub");
-                            if (lowerPrimaryActive) onBeginArtworkDrag("sub", event);
+                            onBeginArtworkDrag("sub", event);
                           }}
                           ref={lowerCard.cardRef}
                           style={{ left: `${lowerCard.left}px`, top: `${lowerCard.top}px`, width: `${lowerCard.size}px` }}
                         >
-                          <span className="hole-shadow is-secondary" style={{ left: `${lowerCard.primaryHole.xPx}px`, top: `${lowerCard.primaryHole.yPx}px` }} />
-                          <button
-                            aria-label="つながる側の穴位置を調整"
-                            className={`hole-handle is-secondary ${lowerPrimaryActive ? "is-active" : "is-muted"}`}
-                            onPointerDown={(event) => onBeginHoleDrag("sub", "primary", event)}
+                          <span
+                            className={`hole-shadow is-secondary ${lowerPrimaryActive ? "is-active" : "is-muted"}`}
                             style={{ left: `${lowerCard.primaryHole.xPx}px`, top: `${lowerCard.primaryHole.yPx}px` }}
-                            type="button"
                           />
                           {lowerCard.artwork ? (
                             <img alt="つながる画像" className="artwork-image" draggable={false} src={lowerCard.artwork.previewUrl} />
                           ) : (
-                            renderPlaceholder(lowerCard.status, lowerCard.error, "もうひとつ画像を追加")
+                            renderPlaceholder(lowerCard.status, lowerCard.error, "画像をアップロード")
                           )}
                         </div>
                       </div>

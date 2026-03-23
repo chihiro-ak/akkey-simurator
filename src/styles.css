@@ -535,6 +535,15 @@ img {
   opacity: 0.58;
 }
 
+.hole-shadow.is-active {
+  opacity: 1;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.38);
+}
+
+.hole-shadow.is-muted {
+  opacity: 0.42;
+}
+
 .hole-shadow.is-link-point,
 .hole-handle.is-link-point {
   border-color: rgba(111, 176, 123, 0.96);
