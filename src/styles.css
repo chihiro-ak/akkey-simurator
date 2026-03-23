@@ -230,6 +230,78 @@ img {
   font-size: 0.72rem;
 }
 
+.mode-switch {
+  display: grid;
+  gap: 12px;
+}
+
+.mode-button {
+  border: 2px solid transparent;
+  border-radius: 24px;
+  padding: 16px;
+  background: var(--surface-low);
+  color: var(--text-sub);
+  text-align: left;
+  display: grid;
+  gap: 4px;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease,
+    box-shadow 160ms ease,
+    color 160ms ease;
+}
+
+.mode-button strong {
+  color: var(--text-main);
+  font-size: 0.98rem;
+}
+
+.mode-button.is-active {
+  border-color: rgba(117, 82, 91, 0.2);
+  background: rgba(255, 209, 220, 0.2);
+  box-shadow: 0 10px 22px rgba(117, 82, 91, 0.08);
+}
+
+.upload-card-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.upload-card-shell.is-active {
+  box-shadow:
+    var(--shadow-soft),
+    0 0 0 2px rgba(117, 82, 91, 0.14);
+}
+
+.size-card {
+  border-radius: 18px;
+  background: rgba(245, 247, 249, 0.86);
+  padding: 16px;
+}
+
+.grouped-upload-card {
+  display: grid;
+  gap: 16px;
+}
+
+.grouped-upload-list {
+  display: grid;
+  gap: 16px;
+}
+
+.config-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.config-title-row .config-title {
+  margin-bottom: 0;
+}
+
+
 .canvas-switch {
   width: min(100%, 320px);
   margin: 0 auto;
@@ -463,6 +535,49 @@ img {
   opacity: 0.58;
 }
 
+.hole-shadow.is-link-point,
+.hole-handle.is-link-point {
+  border-color: rgba(111, 176, 123, 0.96);
+}
+
+.hole-shadow.is-secondary,
+.hole-handle.is-secondary {
+  border-color: rgba(233, 154, 87, 0.96);
+}
+
+.hole-handle {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  transform: translate(-50%, -50%);
+  border-radius: 999px;
+  border: 2px solid rgba(117, 82, 91, 0.7);
+  background: rgba(255, 255, 255, 0.84);
+  box-shadow: 0 6px 16px rgba(105, 85, 106, 0.12);
+  z-index: 8;
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.hole-handle::after {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border-radius: inherit;
+  background: rgba(117, 82, 91, 0.9);
+}
+
+.hole-handle.is-active {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1.04);
+}
+
+.hole-handle.is-muted {
+  opacity: 0.4;
+}
+
 .empty-card {
   width: min(100%, 340px);
   min-height: 220px;
@@ -501,6 +616,47 @@ img {
   width: 0;
   height: 0;
   will-change: transform;
+}
+
+.editor-card,
+.linked-card {
+  transition:
+    opacity 160ms ease,
+    filter 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.editor-card.is-active {
+  filter: drop-shadow(0 10px 20px rgba(105, 85, 106, 0.12));
+}
+
+.editor-card.is-muted {
+  opacity: 0.72;
+}
+
+.artwork-placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 180px;
+  padding: 20px;
+  border-radius: 24px;
+  border: 2px dashed rgba(117, 82, 91, 0.18);
+  background: rgba(255, 255, 255, 0.8);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--text-sub);
+}
+
+.artwork-placeholder strong {
+  color: var(--text-main);
+  font-size: 0.92rem;
+}
+
+.artwork-placeholder span {
+  font-size: 0.76rem;
 }
 
 .hardware-stack {
@@ -565,6 +721,52 @@ img {
 .ring-image {
   object-fit: contain;
   filter: drop-shadow(0 4px 8px rgba(148, 163, 184, 0.24)) brightness(0.9) contrast(1.1);
+}
+
+.linked-anchor {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  z-index: 4;
+}
+
+.linked-anchor-ring {
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  border: 2px solid rgba(162, 184, 198, 0.96);
+  background: rgba(255, 255, 255, 0.92);
+  display: block;
+  margin: 0 auto;
+  box-shadow: 0 3px 10px rgba(124, 140, 154, 0.16);
+}
+
+.linked-anchor-chain {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  width: 4px;
+  display: block;
+  margin-top: -2px;
+  border-radius: 999px;
+  background: linear-gradient(180deg, rgba(171, 189, 201, 0.96), rgba(214, 225, 232, 0.96));
+  transform: translateX(-50%);
+}
+
+.linked-swing-group {
+  position: relative;
+  width: 0;
+  height: 0;
+  transform-origin: 50% 0;
+  will-change: transform;
+}
+
+.linked-body-group {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+  will-change: transform;
 }
 
 .preview-artwork {
