@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+
+<html lang="ja"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>アクキーシミュレーター</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=M+PLUS+Rounded+1c:wght@400;500;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-tertiary": "#d2faff",
+              "on-surface": "#2c2f31",
+              "tertiary-container": "#c3f4fa",
+              "tertiary-fixed-dim": "#b5e5eb",
+              "outline": "#747779",
+              "on-tertiary-fixed-variant": "#39686d",
+              "primary": "#69556a",
+              "on-primary-fixed-variant": "#6e5a70",
+              "error": "#b41340",
+              "on-error": "#ffefef",
+              "secondary-fixed": "#ffd1dc",
+              "secondary-fixed-dim": "#f0c3ce",
+              "on-secondary-fixed": "#52333c",
+              "surface-container-low": "#eef1f3",
+              "surface-variant": "#d9dde0",
+              "surface-tint": "#69556a",
+              "surface-container-lowest": "#ffffff",
+              "primary-fixed-dim": "#efd5ef",
+              "on-tertiary-fixed": "#1a4b50",
+              "inverse-primary": "#fee3fd",
+              "surface-bright": "#f5f7f9",
+              "tertiary-dim": "#27565c",
+              "surface-dim": "#d0d5d8",
+              "on-secondary": "#ffeff1",
+              "surface-container": "#e5e9eb",
+              "tertiary": "#346268",
+              "on-background": "#2c2f31",
+              "primary-dim": "#5c495e",
+              "secondary": "#75525b",
+              "primary-container": "#fee3fd",
+              "surface-container-highest": "#d9dde0",
+              "on-error-container": "#510017",
+              "on-secondary-fixed-variant": "#714e58",
+              "outline-variant": "#abadaf",
+              "surface": "#f5f7f9",
+              "on-surface-variant": "#595c5e",
+              "primary-fixed": "#fee3fd",
+              "on-primary-fixed": "#513e53",
+              "inverse-surface": "#0b0f10",
+              "secondary-container": "#ffd1dc",
+              "on-primary-container": "#645066",
+              "background": "#f5f7f9",
+              "on-primary": "#ffeefc",
+              "on-secondary-container": "#66454e",
+              "on-tertiary-container": "#2f5e63",
+              "tertiary-fixed": "#c3f4fa",
+              "error-container": "#f74b6d",
+              "secondary-dim": "#684650",
+              "surface-container-high": "#dfe3e6",
+              "inverse-on-surface": "#9a9d9f",
+              "error-dim": "#a70138"
+            },
+            fontFamily: {
+              "headline": ["Plus Jakarta Sans", "M PLUS Rounded 1c"],
+              "body": ["Plus Jakarta Sans", "M PLUS Rounded 1c"],
+              "label": ["Plus Jakarta Sans", "M PLUS Rounded 1c"]
+            },
+            borderRadius: {"DEFAULT": "1rem", "lg": "2rem", "xl": "3rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'M PLUS Rounded 1c', sans-serif; }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+        }
+        .canvas-shadow {
+            box-shadow: 0 12px 40px rgba(105, 85, 106, 0.08);
+        }
+        .acrylic-reflection {
+            background: linear-gradient(135deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 50%, rgba(255,255,255,0.1) 100%);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="bg-[#f5f7f9] font-['Plus_Jakarta_Sans','M_PLUS_Rounded_1c'] text-sm tracking-wide flex justify-between items-center w-full px-6 py-6 max-w-full sticky top-0 z-50">
+<h1 class="text-2xl font-extrabold text-[#69556a] tracking-tight">アクキーシミュレーター</h1>
+<div class="flex gap-4 items-center">
+<button class="material-symbols-outlined text-[#75525b] opacity-60 hover:bg-[#ffffff]/50 transition-colors p-2 rounded-full active:scale-95 duration-200" data-icon="settings">settings</button>
+</div>
+</header>
+<main class="flex-grow px-6 md:px-12 pb-32">
+<div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 mt-4">
+<!-- Configuration Column -->
+<aside class="lg:col-span-4 space-y-6">
+<!-- Upload Section -->
+<section class="bg-surface-container-lowest rounded-xl p-6 canvas-shadow">
+<h3 class="text-primary font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-xl" data-icon="upload_file">upload_file</span>
+                        画像をアップロード
+                    </h3>
+<div class="border-2 border-dashed border-secondary-fixed-dim rounded-lg p-8 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-surface-container-low transition-colors group">
+<span class="material-symbols-outlined text-4xl text-secondary-dim mb-2 group-hover:scale-110 transition-transform" data-icon="cloud_upload">cloud_upload</span>
+<p class="text-sm font-medium text-on-surface-variant">ドラッグ＆ドロップ<br/>またはクリックして選択</p>
+<p class="text-[10px] text-secondary mt-2 opacity-60">透過PNG推奨</p>
+</div>
+</section>
+<!-- Attachment Selection -->
+<section class="bg-surface-container-lowest rounded-xl p-6 canvas-shadow">
+<h3 class="text-primary font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-xl" data-icon="key">key</span>
+                        金具選択
+                    </h3>
+<div class="grid grid-cols-2 gap-3">
+<button class="bg-secondary-fixed text-on-secondary-fixed px-4 py-3 rounded-full text-xs font-bold transition-all hover:shadow-md active:scale-95">ボールチェーン</button>
+<button class="bg-surface-container-low text-on-surface-variant px-4 py-3 rounded-full text-xs font-bold transition-all hover:bg-secondary-fixed/50 active:scale-95">ナスカン</button>
+<button class="bg-surface-container-low text-on-surface-variant px-4 py-3 rounded-full text-xs font-bold transition-all hover:bg-secondary-fixed/50 active:scale-95">星型</button>
+<button class="bg-surface-container-low text-on-surface-variant px-4 py-3 rounded-full text-xs font-bold transition-all hover:bg-secondary-fixed/50 active:scale-95">ハート型</button>
+</div>
+</section>
+<!-- Size Slider -->
+<section class="bg-surface-container-lowest rounded-xl p-6 canvas-shadow">
+<div class="flex justify-between items-center mb-4">
+<h3 class="text-primary font-bold flex items-center gap-2">
+<span class="material-symbols-outlined text-xl" data-icon="straighten">straighten</span>
+                            サイズ
+                        </h3>
+<span class="text-sm font-bold text-secondary">50mm</span>
+</div>
+<input class="w-full h-2 bg-surface-container-low rounded-lg appearance-none cursor-pointer accent-primary" max="100" min="30" type="range" value="50"/>
+<div class="flex justify-between text-[10px] mt-2 text-on-surface-variant px-1">
+<span>30mm</span>
+<span>100mm</span>
+</div>
+</section>
+<!-- Thickness Selection -->
+<section class="bg-surface-container-lowest rounded-xl p-6 canvas-shadow">
+<h3 class="text-primary font-bold mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-xl" data-icon="layers">layers</span>
+                        厚み
+                    </h3>
+<div class="flex gap-3">
+<button class="flex-1 bg-secondary-fixed text-on-secondary-fixed py-2 rounded-full text-sm font-bold transition-all">3mm</button>
+<button class="flex-1 bg-surface-container-low text-on-surface-variant py-2 rounded-full text-sm font-bold transition-all">5mm</button>
+<button class="flex-1 bg-surface-container-low text-on-surface-variant py-2 rounded-full text-sm font-bold transition-all">8mm</button>
+</div>
+</section>
+</aside>
+<!-- Canvas Column -->
+<div class="lg:col-span-8 flex flex-col gap-6">
+<!-- Segmented Control -->
+<div class="flex justify-center">
+<div class="bg-surface-container-low p-1.5 rounded-full flex w-full max-w-xs shadow-inner">
+<button class="flex-1 py-2 px-6 rounded-full text-sm font-bold bg-white text-primary shadow-sm">編集</button>
+<button class="flex-1 py-2 px-6 rounded-full text-sm font-medium text-on-surface-variant hover:bg-white/50 transition-colors">プレビュー</button>
+</div>
+</div>
+<!-- Main Creator Canvas -->
+<div class="flex-grow bg-surface-container-lowest rounded-xl relative overflow-hidden canvas-shadow min-h-[500px] flex items-center justify-center border-4 border-primary-fixed-dim/20">
+<!-- Safety Zone Indicator (Edit Mode) -->
+<div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+<div class="w-4/5 h-4/5 border-2 border-dashed border-primary/20 rounded-3xl flex items-end justify-center pb-4">
+<span class="text-[10px] text-primary/40 font-bold tracking-widest bg-white px-3">安全エリア</span>
+</div>
+</div>
+<!-- Draggable Hole UI (Mock) -->
+<div class="absolute top-1/4 left-1/2 -translate-x-1/2 flex flex-col items-center">
+<div class="w-6 h-6 rounded-full bg-white border-2 border-primary shadow-md flex items-center justify-center cursor-move">
+<div class="w-2 h-2 rounded-full bg-primary/30"></div>
+</div>
+<div class="mt-2 bg-primary/10 px-3 py-1 rounded-full">
+<p class="text-[10px] text-primary font-medium">穴位置をドラッグで調整</p>
+</div>
+</div>
+<!-- Dummy Keychain Artwork -->
+<div class="relative group cursor-grab active:cursor-grabbing">
+<div class="w-64 h-64 bg-secondary-fixed/30 rounded-full flex items-center justify-center overflow-hidden border-2 border-white relative shadow-lg">
+<img alt="Abstract pastel colors" class="w-4/5 h-4/5 object-cover rounded-2xl rotate-12" data-alt="Soft abstract pastel gradient art for keychain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCV1mhBSA5rYGsdg7_7bSRkXJ4T1TMHTQs1f7Du3ASBldYuwTRkav0WV4ywH8EVw9I5jdyJmLhLZm9V5d2IHpUBbp7BOPvF85BLDdIqonfXzD_-VGmDn8_fUtrlWxRLVLuRq8oNJsL--_5Wp84fQ9pOctL7_p8xapo8WrZPqW_8p1CnPm5QqMo4Ihwqi_EPty66x4Zn8Ew6PDY_tT4uOPsDJclKA-cxDuH4y-zUm5lt-ZrY4qPXT2WxgU_H6QSXeFnp7NsyF4WVOJE"/>
+<div class="absolute inset-0 acrylic-reflection"></div>
+</div>
+<!-- Attachment Mock -->
+<div class="absolute -top-12 left-1/2 -translate-x-1/2 w-16 h-16 flex flex-col items-center">
+<div class="w-2 h-8 bg-zinc-300 rounded-full shadow-inner"></div>
+<div class="w-8 h-8 rounded-full border-4 border-zinc-300 shadow-sm"></div>
+</div>
+</div>
+<!-- Tooltip for interaction -->
+<div class="absolute bottom-6 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-md px-4 py-2 rounded-full shadow-sm border border-secondary-fixed-dim/30">
+<p class="text-xs text-secondary font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="drag_pan">drag_pan</span>
+                            ドラッグして揺れを確認
+                        </p>
+</div>
+</div>
+<!-- Design Summary (Bottom Panel) -->
+<div class="bg-secondary-container/40 backdrop-blur-md rounded-xl p-6 canvas-shadow">
+<div class="flex flex-col md:flex-row items-center justify-between gap-6">
+<div class="flex flex-wrap gap-4 justify-center md:justify-start">
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase tracking-wider opacity-60">サイズ</span>
+<span class="text-sm font-bold text-on-secondary-container">50mm × 50mm</span>
+</div>
+<div class="w-px h-8 bg-secondary-fixed-dim hidden md:block"></div>
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase tracking-wider opacity-60">厚み</span>
+<span class="text-sm font-bold text-on-secondary-container">3mm</span>
+</div>
+<div class="w-px h-8 bg-secondary-fixed-dim hidden md:block"></div>
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase tracking-wider opacity-60">金具</span>
+<span class="text-sm font-bold text-on-secondary-container">ボールチェーン</span>
+</div>
+<div class="w-px h-8 bg-secondary-fixed-dim hidden md:block"></div>
+<div class="flex flex-col">
+<span class="text-[10px] text-secondary font-bold uppercase tracking-wider opacity-60">穴位置</span>
+<span class="text-sm font-bold text-on-secondary-container">調整済み</span>
+</div>
+</div>
+<div class="flex gap-4 w-full md:w-auto">
+<button class="flex-1 md:flex-none px-8 py-3 bg-white text-secondary font-bold rounded-full hover:shadow-md transition-all active:scale-95">共有</button>
+<button class="flex-1 md:flex-none px-10 py-3 bg-gradient-to-r from-primary to-primary-dim text-on-primary font-bold rounded-full shadow-lg hover:shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-lg" data-icon="favorite">favorite</span>
+                                デザインを保存
+                            </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-3 bg-[#ffffff]/80 dark:bg-[#1a1c1e]/80 backdrop-blur-xl shadow-[0_-12px_40px_rgba(105,85,106,0.08)] rounded-t-[3.0rem]">
+<a class="flex flex-col items-center justify-center bg-[#ffd1dc] text-[#69556a] rounded-full px-6 py-2 transition-transform active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="palette">palette</span>
+<span class="font-['M_PLUS_Rounded_1c'] text-[10px] font-medium">作成</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#75525b] opacity-70 hover:scale-110 transition-transform active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="auto_awesome">auto_awesome</span>
+<span class="font-['M_PLUS_Rounded_1c'] text-[10px] font-medium">コレクション</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#75525b] opacity-70 hover:scale-110 transition-transform active:scale-90 duration-300 ease-out" href="#">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+<span class="font-['M_PLUS_Rounded_1c'] text-[10px] font-medium">設定</span>
+</a>
+</nav>
+</body></html>
